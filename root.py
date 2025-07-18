@@ -10,11 +10,11 @@ safety-net that automatically rolls back changes that would break the Python
 codebase.
 """
 
-import importlib
 import json
 import os
 import py_compile
 import shutil
+import fnmatch
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
@@ -45,15 +45,50 @@ GOAL = (PROJECT_ROOT / "goal.md").read_text(encoding="utf-8").strip()
 # ---------------------------------------------------------------------------
 
 def read_codebase(root: Path) -> Dict[str, str]:
-    """Return a mapping of *relative* file paths to their UTF-8 contents."""
+    """Return a mapping of *relative* file paths to their UTF-8 contents. Ignores any files listed in .gitignore."""
+    gitignore_path = root / ".gitignore"
+    patterns = []
+    if gitignore_path.is_file():
+        with gitignore_path.open("r", encoding="utf-8") as f:
+            patterns = [line.strip() for line in f if line.strip() and not line.startswith("#")]
+
+    def is_ignored(path: Path) -> bool:
+        """Check if a path should be ignored based on .gitignore patterns."""
+        try:
+            rel_path = path.relative_to(root)
+        except ValueError:
+            return False  # Path is not in the project root, ignore it
+
+        rel_path_str = rel_path.as_posix()
+        
+        for pattern in patterns:
+            # Handle directory patterns (e.g., '.venv/' or 'node_modules')
+            if pattern.endswith('/'):
+                if rel_path_str.startswith(pattern.rstrip('/')):
+                    return True
+            # Handle file/directory name patterns that might be anywhere in the path
+            elif fnmatch.fnmatch(rel_path_str, pattern) or any(fnmatch.fnmatch(part, pattern) for part in rel_path.parts):
+                 return True
+        return False
+
     files: Dict[str, str] = {}
-    for path in root.rglob("*"):
-        if path.suffix in CODE_EXTENSIONS and path.is_file():
+    
+    # We need to build the list of files manually to skip ignored directories
+    paths_to_check = list(root.iterdir())
+    while paths_to_check:
+        path = paths_to_check.pop(0)
+
+        if is_ignored(path):
+            continue
+
+        if path.is_dir():
+            paths_to_check.extend(path.iterdir())
+        elif path.is_file() and path.suffix in CODE_EXTENSIONS:
             try:
+                # Use the original relative_to logic for the final key
                 files[str(path.relative_to(root))] = path.read_text(encoding="utf-8")
             except UnicodeDecodeError:
-                # Skip non-UTF-8 or binary files
-                continue
+                continue # Skip non-UTF-8 or binary files
     return files
 
 
