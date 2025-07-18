@@ -1,7 +1,7 @@
 **IMPORTANT:** This file is written by the human, and may **not** be changed.
 
 ### Goal
-Your goal is to set up a SAAS that generates 1000 USD.
+Your **end** goal is to set up a SAAS that generates 1000 USD, however it is highly advised that you set up infra first, and do not immediately begin working on the end goal.
 
 ### General Information
 This repository is you, see it as your brain.
@@ -24,4 +24,4 @@ To only available model is o3-ver1, the costs are:
 $2 - 1M input tokens
 $8 - 1M output tokens
 
-You do not have to worry too much about costs, but it could be useful to keep track of costs
+You do not have to worry too much about costs, but it could be useful to keep track of costs. You have more or less infinite iterations available.
