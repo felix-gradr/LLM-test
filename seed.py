@@ -22,6 +22,10 @@ SYSTEM_PROMPT = (Path(__file__).parent / "system_prompt.txt").read_text(encoding
 # Load goal from goal.md
 GOAL = (Path(__file__).parent / "goal.md").read_text(encoding="utf-8").strip()
 
+# Where to store reflection files so they survive between iterations
+REFLECTION_DIR = Path(__file__).parent / "memory" / "reflections"
+REFLECTION_DIR.mkdir(parents=True, exist_ok=True)
+
 
 def read_codebase(root: Path) -> dict[str, str]:
     """Return a dict mapping relative paths to file contents."""
@@ -72,8 +76,43 @@ def _run_pytest_if_available(project_root: Path) -> Optional[int]:
     return result.returncode
 
 
+def _save_reflection(content: str) -> None:
+    """Persist *content* to a timestamped file in *REFLECTION_DIR*."""
+    timestamp = datetime.utcnow().isoformat(timespec="seconds").replace(":", "-")
+    file_path = REFLECTION_DIR / f"{timestamp}.md"
+    file_path.write_text(content, encoding="utf-8")
+    print(f"[REFLECT] Saved critique to {file_path.relative_to(Path(__file__).parent)}")
+
+
+def _invoke_critic(client: AzureOpenAI, model: str, first_reply: str) -> None:
+    """Ask a second LLM instance to critique *first_reply* and persist the feedback."""
+    critic_prompt = (
+        "You are SelfCoder-Critic, a specialized agent whose sole task is to critique "
+        "the proposed JSON actions of another agent (SelfCoder). \n\n"
+        "Provide a concise analysis containing: \n"
+        "1. Strengths of the plan\n"
+        "2. Weaknesses or risks\n"
+        "3. Suggestions for improvement\n\n"
+        "Respond in plain text; do NOT output JSON.\n\n"
+        "Proposed actions to critique:\n"
+        f"{first_reply}"
+    )
+
+    try:
+        response = client.chat.completions.create(
+            model=model,
+            reasoning_effort="low",
+            messages=[
+                {"role": "system", "content": critic_prompt},
+            ],
+        )
+        critique = response.choices[0].message.content.strip()
+        _save_reflection(critique)
+    except Exception as exc:
+        print("[WARN] Critic invocation failed:", exc)
+
+
 def agent_step(root: Path, model: str = "o3") -> None:
-    global GOAL
     """Run one reasoning / coding cycle."""
     snapshot = read_codebase(root)
     # Truncate to avoid blowing past context limits
@@ -100,9 +139,14 @@ def agent_step(root: Path, model: str = "o3") -> None:
         ],
     )
 
-    reply = response.choices[0].message.content.strip()
+    first_reply = response.choices[0].message.content.strip()
+
+    # ---- Reflection step ----
+    _invoke_critic(client, model, first_reply)
+    # -------------------------
+
     try:
-        actions = json.loads(reply)
+        actions = json.loads(first_reply)
     except json.JSONDecodeError:
         print("[WARN] LLM returned invalid JSON. Skipping iteration.")
         return
