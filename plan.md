@@ -9,7 +9,7 @@ are discouraged because they hide context in the diff.
 Goal: fulfil the *Current Sub-goal* outlined in `goal.md` – memory, safety,
 loop-protection.
 
-- [X] Introduce structured memory (`memory_manager.py`).
+- [x] Introduce structured memory (`memory_manager.py`).
 - [ ] Wire the new memory manager into `root.py` (safe, staged rollout).
 - [ ] Devise & implement loop-protection heuristics (detect identical diffs).
 - [ ] Add lightweight tests to protect critical files from accidental damage.
@@ -20,9 +20,9 @@ Goal: iterate on plans, tests, and analysis to continuously enhance the agent.
 
 - [ ] Implement multi-LLM orchestration (analyst, coder, reviewer roles).
 - [ ] Add scoring metrics to evaluate each iteration (e.g., test pass rate,
-  cyclomatic complexity, etc.).
+      cyclomatic complexity, etc.).
 - [ ] Create a feedback loop – unsuccessful iterations trigger reflections &
-  corrective actions stored via `memory_manager`.
+      corrective actions stored via `memory_manager`.
 
 ## Phase 3 – External Integration (future, not started)
 
