@@ -1,29 +1,3 @@
-"""
-seed_agent.py – minimal self‑coding agent seed
-
-Requirements:
-    • Python ≥ 3.10
-    • openai ≥ 1.0
-
-Setup:
-    1.  pip install -U openai
-    2.  export OPENAI_API_KEY="sk‑..."  # or set OPENAI_API_KEY in PowerShell
-
-Usage example (PowerShell):
-    python seed_agent.py --goal "Build infrastructure that lets you plan and extend yourself safely" --iterations 3
-
-This script gives an LLM read/write access to its own source tree so it can plan
-and iteratively extend itself.  The agent emits structured JSON instructions
-that are applied to the local codebase.  If it needs help from a human it will
-raise the **human_help** action with a message.
-
-⚠️  SECURITY & ETHICS  ⚠️
-—————————————————————
-Running self‑modifying agents is risky.  Keep them sandboxed, version‑controlled
-(Git), and subject to human review.  Do **not** point them at sensitive files or
-production environments without strong safeguards.
-"""
-
 from __future__ import annotations
 
 import argparse
@@ -37,27 +11,8 @@ import openai
 # File types that the agent is allowed to read/write.  Adjust as needed.
 CODE_EXTENSIONS = {".py", ".txt", ".md"}
 
-# System instruction for the LLM.
-SYSTEM_PROMPT = """You are **SelfCoder**, an autonomous coding agent.
-You can read and modify files in this repository to achieve the long‑term **GOAL**
-provided by the user.  Think step‑by‑step and plan tooling before tackling the
-final objective.
-
-If you need the human to perform something outside your sandbox (e.g. installing
-packages), return the action `human_help` with clear instructions.
-
-When you finish an iteration, reply with **only** valid JSON, following exactly
-this schema:
-{
-  "action": "modify_files | create_files | append_files | human_help | no_op",
-  "changes": [  // required for file actions, omitted otherwise
-    { "path": "relative/path.py", "content": "<FULL NEW FILE CONTENT>" }
-  ],
-  "message_to_human": "<optional>"  // required for human_help
-}
-Do **not** output anything except JSON.
-"""
-
+# Load SYSTEM_PROMPT from prompt.txt
+SYSTEM_PROMPT = (Path(__file__).parent / "prompt.txt").read_text(encoding="utf-8").strip()
 
 def read_codebase(root: Path) -> dict[str, str]:
     """Return a dict mapping relative paths to file contents."""
