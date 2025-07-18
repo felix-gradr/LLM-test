@@ -37,9 +37,6 @@ def read_codebase(root: Path) -> Dict[str, str]:
     files: Dict[str, str] = {}
     for path in root.rglob("*"):
         if path.suffix in CODE_EXTENSIONS and path.is_file():
-            # Skip the memory file – it can be large and is represented separately
-            if path.name.startswith("memory."):
-                continue
             try:
                 files[str(path.relative_to(root))] = path.read_text(encoding="utf-8")
             except UnicodeDecodeError:
@@ -79,9 +76,6 @@ def agent_step(project_root: Path, model: str = "o3-ver1") -> None:
         memory.save()
         print("[AGENT] Please provide new high-level guidance or reset memory.json to continue.")
         return
-
-    # New iteration counter
-    memory.increment_iteration()
 
     # --------------------------------------------------
     # 2. Build user prompt (code snapshot + memory snippet)
@@ -125,9 +119,6 @@ def agent_step(project_root: Path, model: str = "o3-ver1") -> None:
         actions = json.loads(reply)
     except json.JSONDecodeError:
         print("[WARN] LLM returned invalid JSON. Skipping iteration.")
-        memory.record_reply(reply, "invalid_json")
-        memory.data["consecutive_no_op"] = memory.data.get("consecutive_no_op", 0) + 1
-        memory.save()
         return
 
     action = actions.get("action")
@@ -150,16 +141,14 @@ def agent_step(project_root: Path, model: str = "o3-ver1") -> None:
             kwargs = actions.get("args", {}) or {}
             try:
                 result = TOOL_REGISTRY[tool_name](**kwargs)
-                print("[TOOL] " + tool_name + " result:\n" + json.dumps(result, indent=2)[:1000])
+                print(f"[TOOL] {tool_name} result:\n" + json.dumps(result, indent=2)[:1000])
                 # Persist last tool call so it can be referenced later
-                memory.data.setdefault("tool_history", []).append(
-                    {
-                        "timestamp": datetime.utcnow().isoformat(timespec="seconds"),
-                        "tool": tool_name,
-                        "args": kwargs,
-                        "result": result,
-                    }
-                )
+                memory.data.setdefault("tool_history", []).append({
+                    "timestamp": datetime.utcnow().isoformat(timespec="seconds"),
+                    "tool": tool_name,
+                    "args": kwargs,
+                    "result": result,
+                })
                 # Trim history to last 10 calls
                 memory.data["tool_history"] = memory.data["tool_history"][-10:]
             except Exception as exc:
@@ -174,7 +163,7 @@ def agent_step(project_root: Path, model: str = "o3-ver1") -> None:
         query = actions.get("query", "").strip()
         if query:
             result = duckduckgo_search(query)
-            print("[WEB-SEARCH] Results for '" + query + "':\n" + json.dumps(result, indent=2)[:1000])
+            print(f"[WEB-SEARCH] Results for '{query}':\n" + json.dumps(result, indent=2)[:1000])
             memory.data["last_search"] = {
                 "timestamp": datetime.utcnow().isoformat(timespec="seconds"),
                 "query": query,
@@ -200,12 +189,31 @@ def agent_step(project_root: Path, model: str = "o3-ver1") -> None:
         action = "no_op"
 
     # --------------------------------------------------
-    # 5. Persist memory & loop counters
+    # 5. Update memory & housekeeping
     # --------------------------------------------------
+    memory.increment_iteration()
+    memory.record_reply(reply, action)
     if action == "no_op":
         memory.data["consecutive_no_op"] = memory.data.get("consecutive_no_op", 0) + 1
     else:
         memory.data["consecutive_no_op"] = 0
-
-    memory.record_reply(reply, action or "?")
     memory.save()
+
+    # Delete seed.txt (only on first run)
+    seed_file = project_root / "seed.txt"
+    if seed_file.exists():
+        seed_file.unlink()
+        print(f"[{datetime.utcnow().isoformat(timespec='seconds')}] Deleted {seed_file}")
+
+
+# ---------------------------------------------------------------------------
+# CLI entry-point
+# ---------------------------------------------------------------------------
+
+def main():
+    project_root = Path(__file__).parent.resolve()
+    agent_step(project_root, model="o3-ver1")
+
+
+if __name__ == "__main__":
+    main()
