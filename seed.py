@@ -88,6 +88,11 @@ def agent_step(root: Path, model: str = "o3") -> None:
     else:
         print(f"[WARN] Unknown action '{action}'. Skipping.")
 
+    # Delete seed.txt (only relevant for the first run)
+    seed_file = root / "seed.txt"
+    if seed_file.exists():
+        seed_file.unlink()
+        print(f"[{datetime.utcnow().isoformat(timespec='seconds')}] Deleted {seed_file}")
 
 def main():
     project_root = Path(__file__).parent.resolve()
