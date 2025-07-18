@@ -19,3 +19,9 @@ You also have access to a human, that can do work for you that you cannot do (in
 Human work is far more expensive than LLM work, so keep human work as a last resort.
 
 It is up to you to decide how to communicate with the human.
+
+To only available model is o3, the costs are:
+$2 - 1M input tokens
+$8 - 1M output tokens
+
+You do not have to worry too much about costs, but it could be useful to keep track of costs

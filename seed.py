@@ -6,13 +6,17 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-import openai
+from openai import AzureOpenAI
 
 # File types that the agent is allowed to read/write.  Adjust as needed.
 CODE_EXTENSIONS = {".py", ".txt", ".md"}
 
 # Load SYSTEM_PROMPT from prompt.txt
 SYSTEM_PROMPT = (Path(__file__).parent / "prompt.txt").read_text(encoding="utf-8").strip()
+
+
+# Load goal from goal.md
+GOAL = (Path(__file__).parent / "goal.md").read_text(encoding="utf-8").strip()
 
 def read_codebase(root: Path) -> dict[str, str]:
     """Return a dict mapping relative paths to file contents."""
@@ -37,7 +41,8 @@ def apply_changes(root: Path, changes: list[dict]):
         print(f"[{datetime.utcnow().isoformat(timespec='seconds')}] Wrote {rel_path}")
 
 
-def agent_step(goal: str, root: Path, model: str = "gpt-4o-mini") -> None:
+def agent_step(root: Path, model: str = "o3") -> None:
+    global GOAL
     """Run one reasoning / coding cycle."""
     snapshot = read_codebase(root)
     # Truncate to avoid blowing past context limits
@@ -45,12 +50,19 @@ def agent_step(goal: str, root: Path, model: str = "gpt-4o-mini") -> None:
 
     user_prompt = (
         f"Today is {datetime.utcnow().date()}.\n"
-        f"Your GOAL: {goal}\n\n"
+        f"Your GOAL: {GOAL}\n\n"
         f"Here is the current codebase (truncated):\n{joined}"
     )
 
-    response = openai.ChatCompletion.create(
+    client = AzureOpenAI(
+            api_key=os.getenv("AZURE_KEY"),
+            azure_endpoint=os.getenv("AZURE_ENDPOINT"),
+            api_version="2025-03-01-preview",
+        )
+
+    response = client.chat.completions.create(
         model=model,
+        reasoning_effort="high",
         temperature=0.2,
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
@@ -77,20 +89,8 @@ def agent_step(goal: str, root: Path, model: str = "gpt-4o-mini") -> None:
 
 
 def main():
-    parser = argparse.ArgumentParser("Self‑coding agent seed")
-    parser.add_argument("--goal", required=True, help="High‑level goal for the agent")
-    parser.add_argument("--iterations", type=int, default=1, help="How many cycles to run")
-    parser.add_argument(
-        "--model",
-        default=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
-        help="OpenAI model name",
-    )
-    args = parser.parse_args()
-
     project_root = Path(__file__).parent.resolve()
-    for i in range(args.iterations):
-        print(f"\n=== Iteration {i + 1}/{args.iterations} ===")
-        agent_step(args.goal, project_root, args.model)
+    agent_step(project_root, model="o3")
 
 
 if __name__ == "__main__":
