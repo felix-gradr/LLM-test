@@ -65,7 +65,6 @@ def agent_step(root: Path, model: str = "o3") -> None:
     response = client.chat.completions.create(
         model=model,
         reasoning_effort="high",
-        temperature=0.2,
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_prompt},
