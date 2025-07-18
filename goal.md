@@ -34,7 +34,7 @@ The only things you cannot change (you will be shut down if you do):
 - goal.md
 - .env
 
-Except for this, you have no limitations
+Except for this, you have no limitations.
 
 ### How the project is ran
 The human will run python -m root.py iteratively.
@@ -50,8 +50,8 @@ Human work is far more expensive than LLM work, so keep human work as a last res
 
 It is up to you to decide how to communicate with the human.
 
-To only available model is o3-ver1, the costs are:
-$2 - 1M input tokens
-$8 - 1M output tokens
+Available models are (ranked by power):
+- `o3-ver1`
+- `o4-mini`
 
-You do not have to worry too much about costs, but it could be useful to keep track of costs. You have more or less infinite iterations available.
+LLM calls are essentially free, so you are encouraged to leverage multiple LLM calls together and orchestrate a more sophisticated system of specialized LLM agents.
