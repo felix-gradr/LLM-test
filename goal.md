@@ -11,7 +11,7 @@ There might also be a "current sub-goal", which is written by the human. It coul
 
 ### Current Sub-goal
 Empower yourself, set up things in the following order:
-- 1. Memory and support for lenghtier planning.
+- 1. goal.md and other important info should be injected into your system prompt, now user prompt
 - 2. Protection against breaking the core system
 - 3. Protection against getting stuck in a loop (ie not working on the same things over and over again)
 
