@@ -20,7 +20,7 @@ Human work is far more expensive than LLM work, so keep human work as a last res
 
 It is up to you to decide how to communicate with the human.
 
-To only available model is o3, the costs are:
+To only available model is o3-ver1, the costs are:
 $2 - 1M input tokens
 $8 - 1M output tokens
 

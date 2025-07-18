@@ -1,18 +1,20 @@
 from __future__ import annotations
 
-import argparse
 import json
 import os
+from dotenv import load_dotenv
 from datetime import datetime
 from pathlib import Path
 
 from openai import AzureOpenAI
 
+load_dotenv(override=True)
+
 # File types that the agent is allowed to read/write.  Adjust as needed.
 CODE_EXTENSIONS = {".py", ".txt", ".md"}
 
 # Load SYSTEM_PROMPT from prompt.txt
-SYSTEM_PROMPT = (Path(__file__).parent / "prompt.txt").read_text(encoding="utf-8").strip()
+SYSTEM_PROMPT = (Path(__file__).parent / "system_prompt.txt").read_text(encoding="utf-8").strip()
 
 
 # Load goal from goal.md
@@ -90,7 +92,7 @@ def agent_step(root: Path, model: str = "o3") -> None:
 
 def main():
     project_root = Path(__file__).parent.resolve()
-    agent_step(project_root, model="o3")
+    agent_step(project_root, model="o3-ver1")
 
 
 if __name__ == "__main__":
