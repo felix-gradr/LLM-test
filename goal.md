@@ -11,11 +11,12 @@ There might also be a "current sub-goal", which is written by the human. It coul
 
 ### Current Sub-goal
 Empower yourself, set up things in the following order:
-- 1. Memory
-- 2. Protection against getting stuck in a loop
-- 3. Web search (to search for documentation)
-- 4. Chain-of-thought function calling
-- 5. Context management system(s) (not read the entire repo every time, rather fetch relevant parts.)
+- 1. Create a more efficient way of editing files (without having to rewrite entire file)
+- 2. Ensure you don't break code
+- 3. Protection against getting stuck in a loop
+- 4. Web search (to search for documentation)
+- 5. Chain-of-thought function calling
+- 6. Context management system(s) (not read the entire repo every time, rather fetch relevant parts.)
 
 ### What Can you change
 This repository is you, see it as your brain.
