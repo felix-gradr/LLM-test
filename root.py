@@ -102,7 +102,7 @@ def _load_memory(max_chars: int = MEMORY_CHAR_LIMIT) -> str:
 def _append_memory(snippet: str):
     """Append *snippet* to the memory file with a timestamp."""
     timestamp = datetime.utcnow().isoformat(timespec="seconds")
-    MEMORY_PATH.write_text(f"[{timestamp}] {snippet}\n", encoding="utf-8", errors="ignore", append=True) if hasattr(Path, 'write_text') else open(MEMORY_PATH, 'a', encoding='utf-8').write(f"[{timestamp}] {snippet}\n")
+    MEMORY_PATH.write_text(f"[{timestamp}] {snippet}\n", encoding="utf-8", errors="ignore") if hasattr(Path, 'write_text') else open(MEMORY_PATH, 'a', encoding='utf-8').write(f"[{timestamp}] {snippet}\n")
 
 
 # ------------------------------  AGENT LOOP  --------------------------------
