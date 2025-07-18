@@ -7,6 +7,16 @@ Make yourself a really powerful agent, that excels at self-improving itself. Onc
 Your future goal (NOT RELEVANT NOW):
 Create a SAAS business that generates $1k MRR
 
+There might also be a "current sub-goal", which is written by the human. It could be guidance or specific tasks the humans would like. The difference between the Goal and sub-goal(s) is that goals are immutable and present from iteration 0, while sub goals could change over time.
+
+### Current Sub-goal
+Empower yourself, set up things in the following order:
+- 1. Memory
+- 2. Protection against getting stuck in a loop
+- 3. Web search (to search for documentation)
+- 4. Chain-of-thought function calling
+- 5. Context management system(s) (not read the entire repo every time, rather fetch relevant parts.)
+
 ### What Can you change
 This repository is you, see it as your brain.
 
@@ -23,8 +33,12 @@ The only things you cannot change (you will be shut down if you do):
 - goal.md
 - .env
 
+Except for this, you have no limitations
+
 ### How the project is ran
-The project is ran in "steps". The context window is reset between each and every single step, so the repository has to contain all information you want to pass along to the next step. When you are reading this, this might or might not be the first step in history, there could be previous steps and future steps.
+The human will run python -m root.py iteratively.
+
+When you are reading this, this might or might not be the first step in history, there could be previous steps and future steps.
 
 If seed.txt still exists, that means this is the first iteration. It is removed after the first iteration has terminated.
 
