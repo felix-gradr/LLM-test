@@ -2,135 +2,126 @@ from __future__ import annotations
 
 """Filesystem search utility for SelfCoder.
 
-This module provides a single high-level function ``fs_find`` that allows other
-parts of the agent (or future function-calling interfaces) to quickly discover
-files matching a substring or regular-expression pattern.
+This module provides a single high-level function ``fs_find`` that allows
+other parts of the agent (or future function-calling interfaces) to quickly
+locate files whose *path* or *content* matches a given query string.
 
-Rationale
----------
-Self-improvement often requires locating existing code or documentation that
-contains a given symbol, function name or phrase. While Python's ``Path.rglob``
-can be used directly, wrapping this logic gives us:
+The implementation purposefully keeps the public interface *very small* so
+that it is easy to memorise and use from LLM prompts while still being
+powerful enough for day-to-day coding assistance.
 
-1. Consistent filtering (e.g., ignore ``.git``/virtual-env directories).
-2. Easy extensibility (future ranking, embedding search, etc.).
-3. A stable interface we can expose to an LLM function-calling schema later.
+Key capabilities
+----------------
+1. Search by **filename/path** substring.
+2. Optional search within **file contents**.
+3. **Case-insensitive** matching by default – can be toggled.
+4. Graceful handling of binary / non-UTF8 files.
+5. Returns a *list of dictionaries* ready for JSON-serialisation so the caller
+   can easily feed results back into an LLM conversation.
 
-API
----
-    fs_find(pattern: str,
-            root: str | Path = ".",
-            case_sensitive: bool = False,
-            include_content: bool = False,
-            max_results: int | None = 50) -> list[dict[str, str]]
-
-Returns a list of dicts. Each dict has at least the key ``path``.
-If ``include_content`` is True, it will additionally contain ``content`` with
-the full file text (truncated to 8 kB to stay reasonable).
+The public API purposefully does **not** try to be a full grep/ag search
+replacement – it only needs to satisfy the agent's immediate requirements and
+unit tests.  New features can be added incrementally as the need arises.
 """
 
 from pathlib import Path
-import re
-from typing import List, Dict, Union, Optional
+from typing import Iterable, List, Dict, Optional
 
 __all__ = ["fs_find"]
 
-# Filetypes that are safe/textual enough to inspect.  You can extend this.
-_TEXT_EXTENSIONS = {
-    ".py",
-    ".md",
-    ".txt",
-    ".json",
-    ".yaml",
-    ".yml",
-    ".toml",
-    ".ini",
-}
 
-# Directories to skip during traversal
-_SKIP_DIRS = {".git", "__pycache__", ".venv", "env", "venv", "node_modules"}
+def _iter_files(root: Path, extensions: Optional[Iterable[str]] = None):
+    """Yield all files under *root* recursively, filtered by *extensions*.
 
-_MAX_CONTENT_PREVIEW = 8 * 1024  # 8 kB
-
-
-def _iter_files(root: Path):
-    """Yield candidate files under *root* honoring _SKIP_DIRS / _TEXT_EXTENSIONS."""
+    *extensions* – an iterable of lowercase extensions (with the leading dot),
+    or *None* to allow all file types.
+    """
     for path in root.rglob("*"):
         if not path.is_file():
             continue
-        if any(seg in _SKIP_DIRS for seg in path.parts):
-            continue
-        if path.suffix.lower() not in _TEXT_EXTENSIONS:
+        if extensions is not None and path.suffix.lower() not in extensions:
             continue
         yield path
 
 
+def _match(haystack: str, needle: str, case_sensitive: bool) -> bool:
+    """Return True if *needle* is present in *haystack* using the given case rules."""
+    if case_sensitive:
+        return needle in haystack
+    return needle.lower() in haystack.lower()
+
+
 def fs_find(
-    pattern: str,
-    root: Union[str, Path] = ".",
+    query: str,
     *,
+    root: Path | str = Path("."),
+    include_content: bool = True,
     case_sensitive: bool = False,
-    include_content: bool = False,
-    max_results: Optional[int] = 50,
+    max_results: int | None = None,
+    file_extensions: Iterable[str] | None = None,
 ) -> List[Dict[str, str]]:
-    """Search *root* for files whose **content** OR **path** matches *pattern*.
+    """Search *root* for files matching *query*.
 
     Parameters
     ----------
-    pattern : str
-        Substring (or regex) to search for.
-    root : str | Path, default "."
-        Directory to start searching from.
-    case_sensitive : bool, default False
-        If False, the search will be case-insensitive (pattern lowered).
-    include_content : bool, default False
-        When True, include file text (truncated) in each result dict.
-    max_results : int | None, default 50
-        Maximum number of results to return. ``None`` means unlimited.
+    query : str
+        Sub-string to search for.  (Regex not yet supported.)
+    root : Path | str, default ``Path('.')``
+        Directory to search.  Accepts both ``str`` and ``Path`` objects.
+    include_content : bool, default ``True``
+        When *True* the function also searches inside file contents.
+    case_sensitive : bool, default ``False``
+        Perform a case-sensitive match when *True*.
+    max_results : int | None, default ``None``
+        Optional cap on the number of matches returned.
+    file_extensions : Iterable[str] | None, default ``None``
+        Restrict the search to the given (lower-case) extensions *including* the
+        leading dot.  ``None`` means "all extensions".
+
+    Returns
+    -------
+    list[dict]
+        Each dict contains at minimum the key ``"path"`` (relative to *root*).
+        When ``include_content=True`` an additional key ``"snippet"`` is
+        present containing a short excerpt surrounding the first match.
     """
-    root = Path(root).expanduser().resolve()
+
+    root_path = Path(root).resolve()
+    if not root_path.exists():
+        raise FileNotFoundError(root_path)
+
+    # Normalise *file_extensions* to a set of lowercase strings starting with '.'
+    if file_extensions is not None:
+        file_extensions = {ext.lower() if ext.startswith(".") else f".{ext.lower()}" for ext in file_extensions}
+
     results: List[Dict[str, str]] = []
 
-    flags = 0 if case_sensitive else re.IGNORECASE
-    try:
-        regex = re.compile(pattern, flags)
-    except re.error:
-        # Treat as literal substring
-        regex = None
-        if not case_sensitive:
-            pattern = pattern.lower()
+    def _add_result(file: Path, snippet: str | None = None):
+        entry: Dict[str, str] = {"path": str(file.relative_to(root_path))}
+        if snippet is not None:
+            entry["snippet"] = snippet
+        results.append(entry)
 
-    for path in _iter_files(root):
-        # First, match against the relative path string
-        rel_str = str(path.relative_to(root))
-        haystack_path = rel_str if case_sensitive else rel_str.lower()
-        matched = False
-        if regex:
-            matched = bool(regex.search(rel_str))
-        else:
-            matched = pattern in haystack_path
-
-        # If not matched by path, check content (cheap substring or regex)
-        if not matched:
+    for file in _iter_files(root_path, file_extensions):
+        # Check filename / relative path first (fast path)
+        rel_str = str(file.relative_to(root_path))
+        if _match(rel_str, query, case_sensitive):
+            _add_result(file)
+        elif include_content:
+            # Try reading file content ‑ skip if binary or very large
             try:
-                text = path.read_text(encoding="utf-8", errors="ignore")
+                text = file.read_text(encoding="utf-8", errors="ignore")
             except Exception:
-                continue  # skip unreadable/binary
-            haystack_content = text if case_sensitive else text.lower()
-            if regex:
-                matched = bool(regex.search(text))
-            else:
-                matched = pattern in haystack_content
+                # If the file cannot be read as text, skip it.
+                continue
 
-        if matched:
-            entry: Dict[str, str] = {"path": rel_str}
-            if include_content:
-                try:
-                    snippet = path.read_text(encoding="utf-8", errors="ignore")[:_MAX_CONTENT_PREVIEW]
-                except Exception:
-                    snippet = ""
-                entry["content"] = snippet
-            results.append(entry)
+            if _match(text, query, case_sensitive):
+                # Produce a short snippet (~60 chars around the first occurrence)
+                idx = (text if case_sensitive else text.lower()).find(query if case_sensitive else query.lower())
+                start = max(idx - 30, 0)
+                end = min(idx + len(query) + 30, len(text))
+                snippet = text[start:end].replace("\n", " ")
+                _add_result(file, snippet=snippet)
 
         if max_results is not None and len(results) >= max_results:
             break
