@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import json
 import os
-from dotenv import load_dotenv
+import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
+from dotenv import load_dotenv
 from openai import AzureOpenAI
 
 load_dotenv(override=True)
@@ -16,9 +19,9 @@ CODE_EXTENSIONS = {".py", ".txt", ".md"}
 # Load SYSTEM_PROMPT from prompt.txt
 SYSTEM_PROMPT = (Path(__file__).parent / "system_prompt.txt").read_text(encoding="utf-8").strip()
 
-
 # Load goal from goal.md
 GOAL = (Path(__file__).parent / "goal.md").read_text(encoding="utf-8").strip()
+
 
 def read_codebase(root: Path) -> dict[str, str]:
     """Return a dict mapping relative paths to file contents."""
@@ -28,7 +31,7 @@ def read_codebase(root: Path) -> dict[str, str]:
             try:
                 files[str(path.relative_to(root))] = path.read_text()
             except UnicodeDecodeError:
-                # Skip binary or non‑UTF8 files
+                # Skip binary or non-UTF8 files
                 continue
     return files
 
@@ -39,8 +42,34 @@ def apply_changes(root: Path, changes: list[dict]):
         rel_path = change["path"].lstrip("/\\")
         target = root / rel_path
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(change["content"], encoding="utf‑8")
+        target.write_text(change["content"], encoding="utf-8")
         print(f"[{datetime.utcnow().isoformat(timespec='seconds')}] Wrote {rel_path}")
+
+
+def _run_pytest_if_available(project_root: Path) -> Optional[int]:
+    """Run pytest if it is installed and return the exit code. None if pytest unavailable."""
+    try:
+        import importlib.util
+
+        if importlib.util.find_spec("pytest") is None:
+            return None
+    except Exception:
+        # Any unexpected issue while checking for pytest – skip running tests.
+        return None
+
+    print("[TEST] Running pytest suite …")
+    result = subprocess.run([
+        sys.executable,
+        "-m",
+        "pytest",
+        "-q",
+    ], cwd=project_root)
+
+    if result.returncode == 0:
+        print("[TEST] ✔ All tests passed.")
+    else:
+        print("[TEST] ✖ Tests failed. Exit code:", result.returncode)
+    return result.returncode
 
 
 def agent_step(root: Path, model: str = "o3") -> None:
@@ -57,10 +86,10 @@ def agent_step(root: Path, model: str = "o3") -> None:
     )
 
     client = AzureOpenAI(
-            api_key=os.getenv("AZURE_KEY"),
-            azure_endpoint=os.getenv("AZURE_ENDPOINT"),
-            api_version="2025-03-01-preview",
-        )
+        api_key=os.getenv("AZURE_KEY"),
+        azure_endpoint=os.getenv("AZURE_ENDPOINT"),
+        api_version="2025-03-01-preview",
+    )
 
     response = client.chat.completions.create(
         model=model,
@@ -81,6 +110,10 @@ def agent_step(root: Path, model: str = "o3") -> None:
     action = actions.get("action")
     if action in {"modify_files", "create_files", "append_files"}:
         apply_changes(root, actions.get("changes", []))
+
+        # After applying code changes, immediately run the test-suite if available
+        _run_pytest_if_available(root)
+
     elif action == "human_help":
         print("[AGENT] Requests human assistance:\n" + actions.get("message_to_human", ""))
     elif action == "no_op":
@@ -93,6 +126,7 @@ def agent_step(root: Path, model: str = "o3") -> None:
     if seed_file.exists():
         seed_file.unlink()
         print(f"[{datetime.utcnow().isoformat(timespec='seconds')}] Deleted {seed_file}")
+
 
 def main():
     project_root = Path(__file__).parent.resolve()
