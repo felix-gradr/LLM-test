@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 import json
 import os
 from datetime import datetime
@@ -10,7 +11,8 @@ from dotenv import load_dotenv
 from openai import AzureOpenAI
 
 from memory import Memory
-from tools.web_search import duckduckgo_search  # <-- New tool import
+from tools import registry as TOOL_REGISTRY  # Generic tool registry
+from tools.web_search import duckduckgo_search  # Backward-compat alias
 
 load_dotenv(override=True)
 
@@ -121,24 +123,65 @@ def agent_step(project_root: Path, model: str = "o3-ver1") -> None:
 
     action = actions.get("action")
 
+    # --------------------------
+    # File manipulation actions
+    # --------------------------
     if action in {"modify_files", "create_files", "append_files"}:
         apply_changes(project_root, actions.get("changes", []))
-    elif action == "web_search":
-        query = actions.get("query", "").strip()
-        if not query:
-            print("[WARN] web_search action received without a query string.")
-            action = "no_op"  # Treat as no-op if malformed
+
+    # -------------
+    # Tool calling
+    # -------------
+    elif action == "call_tool":
+        tool_name = actions.get("tool")
+        if tool_name not in TOOL_REGISTRY:
+            print(f"[WARN] Requested unknown tool '{tool_name}'.")
+            action = "no_op"
         else:
+            kwargs = actions.get("args", {}) or {}
+            try:
+                result = TOOL_REGISTRY[tool_name](**kwargs)
+                print(f"[TOOL] {tool_name} result:\n" + json.dumps(result, indent=2)[:1000])
+                # Persist last tool call so it can be referenced later
+                memory.data.setdefault("tool_history", []).append({
+                    "timestamp": datetime.utcnow().isoformat(timespec="seconds"),
+                    "tool": tool_name,
+                    "args": kwargs,
+                    "result": result,
+                })
+                # Trim history to last 10 calls
+                memory.data["tool_history"] = memory.data["tool_history"][-10:]
+            except Exception as exc:
+                print(f"[ERROR] Tool '{tool_name}' failed: {exc}")
+                action = "no_op"
+
+    # --------------
+    # Legacy alias
+    # --------------
+    elif action == "web_search":
+        # Map to call_tool for backward compatibility
+        query = actions.get("query", "").strip()
+        if query:
             result = duckduckgo_search(query)
-            print(f"[WEB-SEARCH] Results for '{query}':\n" + json.dumps(result, indent=2)[:1_000])
-            # Persist the result so the next iteration can reference it
+            print(f"[WEB-SEARCH] Results for '{query}':\n" + json.dumps(result, indent=2)[:1000])
             memory.data["last_search"] = {
                 "timestamp": datetime.utcnow().isoformat(timespec="seconds"),
                 "query": query,
                 "result": result,
             }
+        else:
+            print("[WARN] web_search action received without a query string.")
+            action = "no_op"
+
+    # ---------------
+    # Human help
+    # ---------------
     elif action == "human_help":
         print("[AGENT] Requests human assistance:\n" + actions.get("message_to_human", ""))
+
+    # -----------
+    # No-op / ?
+    # -----------
     elif action == "no_op":
         print("[AGENT] No changes proposed this iteration.")
     else:
