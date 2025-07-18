@@ -12,8 +12,7 @@ There might also be a "current sub-goal", which is written by the human. It coul
 ### Current Sub-goal
 Empower yourself, set up things in the following order:
 - 1. Memory and support for lenghtier planning.
-- 2. Protection against breaking the core system
-- 3. Protection against getting stuck in a loop (ie not working on the same things over and over again)
+- 2. Create a more efficient way of editing files (so you can edit a certain section without having to re-write the entire file out again)
 
 ### What Can you change
 This repository is you, see it as your brain.
@@ -31,7 +30,7 @@ The only things you cannot change (you will be shut down if you do):
 - goal.md
 - .env
 
-Except for this, you have no limitations.
+Except for this, you have no limitations. Feel free to add packages, more LLM calls, or even new programming languages
 
 ### How the project is ran
 The human will run python -m root.py iteratively.

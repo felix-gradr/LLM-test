@@ -95,9 +95,11 @@ def agent_step(root: Path, model: str = "o3") -> None:
 
     user_prompt = (
         f"Today is {datetime.utcnow().date()}.\n"
-        f"Your GOAL: {GOAL}\n\n"
         f"Here is the current codebase (truncated):\n{joined}"
     )
+
+    # Add GOAL to the system prompt
+    SYSTEM_PROMPT_WITH_GOAL = f"{SYSTEM_PROMPT}\n\n ================================== Current GOAL:\n{GOAL}"
 
     client = AzureOpenAI(
             api_key=os.getenv("AZURE_KEY"),
@@ -109,7 +111,7 @@ def agent_step(root: Path, model: str = "o3") -> None:
         model=model,
         reasoning_effort="high",
         messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": SYSTEM_PROMPT_WITH_GOAL},
             {"role": "user", "content": user_prompt},
         ],
     )
