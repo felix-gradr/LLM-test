@@ -9,8 +9,12 @@ Create a SAAS business that generates $1k MRR
 
 There might also be a "current sub-goal", which is written by the human. It could be guidance or specific tasks the humans would like. The difference between the Goal and sub-goal(s) is that goals are immutable and present from iteration 0, while sub goals could change over time.
 
-### Current Sub-goal
-Empower yourself, set up things in the following order:
+### Sub-goals
+**Current sub-goals:**
+Many of your latest requests have been stuck at attempting to call undefined tools. Start by improving the memory logs, to more clearly outline which of the latest requests were succesful / unsucessful.
+
+**Future sub-goals:**
+
 - 1. Create a more efficient way of editing files (without having to rewrite entire file)
 - 2. Ensure you don't break code
 - 3. Protection against getting stuck in a loop (i.e just editing the same things over-and-over again, making no significant progress)
