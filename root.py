@@ -20,10 +20,53 @@ SYSTEM_PROMPT = (Path(__file__).parent / "system_prompt.txt").read_text(encoding
 # Load goal from goal.md
 GOAL = (Path(__file__).parent / "goal.md").read_text(encoding="utf-8").strip()
 
+
+def _read_gitignore(root: Path) -> list[str]:
+    """Read and parse .gitignore rules from the root directory."""
+    gitignore = root / ".gitignore"
+    if not gitignore.is_file():
+        return []
+    
+    patterns = []
+    with gitignore.open("r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#"):
+                patterns.append(line)
+    return patterns
+
+
+def _is_ignored(path: Path, root: Path, ignore_patterns: list[str]) -> bool:
+    """Check if a path is ignored by .gitignore rules."""
+    import fnmatch
+    rel_path = str(path.relative_to(root).as_posix())
+    for pattern in ignore_patterns:
+        # Handle directory-only patterns (e.g., "node_modules/")
+        if pattern.endswith('/'):
+            # Match if the path starts with the directory pattern
+            if rel_path.startswith(pattern):
+                return True
+            # Also match against the pattern with a wildcard for files inside
+            if fnmatch.fnmatch(rel_path, pattern + '*'):
+                return True
+        # Handle patterns without slashes (e.g., "*.log")
+        elif '/' not in pattern:
+            if fnmatch.fnmatch(path.name, pattern):
+                return True
+        # Handle patterns with slashes (e.g., "config/*.ini")
+        else:
+            if fnmatch.fnmatch(rel_path, pattern):
+                return True
+    return False
+
+
 def read_codebase(root: Path) -> dict[str, str]:
-    """Return a dict mapping relative paths to file contents."""
+    """Return a dict mapping relative paths to file contents, respecting .gitignore."""
     files: dict[str, str] = {}
+    ignore_patterns = _read_gitignore(root)
     for path in root.rglob("*"):
+        if path.is_dir() or _is_ignored(path, root, ignore_patterns):
+            continue
         if path.suffix in CODE_EXTENSIONS and path.is_file():
             try:
                 files[str(path.relative_to(root))] = path.read_text()
