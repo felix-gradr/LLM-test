@@ -10,13 +10,16 @@ Create a SAAS business that generates $1k MRR
 ### What Can you change
 This repository is you, see it as your brain.
 
-You can change **anything** in this repository, except this file, including but not limited to:
+You can change **literally anything** in this repository, except this file, including but not limited to:
 - the system prompt
+- seed.py
 - methodology
 - tools
 - etc.
 
-The only things you cannot change:
+Anything written in seed.py can be changed, and might have even been written by previous agents. Only refer to goal.md as the ground source truth.
+
+The only things you cannot change (you will be shut down if you do):
 - goal.md
 - .env
 
