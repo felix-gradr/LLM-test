@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from openai import AzureOpenAI
 
 from memory import Memory
+from tools.web_search import duckduckgo_search  # <-- New tool import
 
 load_dotenv(override=True)
 
@@ -122,12 +123,27 @@ def agent_step(project_root: Path, model: str = "o3-ver1") -> None:
 
     if action in {"modify_files", "create_files", "append_files"}:
         apply_changes(project_root, actions.get("changes", []))
+    elif action == "web_search":
+        query = actions.get("query", "").strip()
+        if not query:
+            print("[WARN] web_search action received without a query string.")
+            action = "no_op"  # Treat as no-op if malformed
+        else:
+            result = duckduckgo_search(query)
+            print(f"[WEB-SEARCH] Results for '{query}':\n" + json.dumps(result, indent=2)[:1_000])
+            # Persist the result so the next iteration can reference it
+            memory.data["last_search"] = {
+                "timestamp": datetime.utcnow().isoformat(timespec="seconds"),
+                "query": query,
+                "result": result,
+            }
     elif action == "human_help":
         print("[AGENT] Requests human assistance:\n" + actions.get("message_to_human", ""))
     elif action == "no_op":
         print("[AGENT] No changes proposed this iteration.")
     else:
         print(f"[WARN] Unknown action '{action}'. Skipping.")
+        action = "no_op"
 
     # --------------------------------------------------
     # 5. Update memory & housekeeping
