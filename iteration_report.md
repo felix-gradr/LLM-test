@@ -223,3 +223,21 @@
 - • If the total token/character count of the `messages` list exceeds a configured threshold, drop the oldest messages until you’re under the limit
 - • Expose a `MAX_CONTEXT_TOKENS` (or `MAX_MESSAGES`) constant in a config file so you can tweak it later
 - Each of these can be handled by a single “apply_task(…)” call and will immediately (1) automate seed removal, (2) keep pending code snapshots clean, and (3) ensure your LLM never chokes on an insanely large context window
+
+### 2025-07-19T15:46:05.639284+00:00
+- Here are three bite-sized, high-impact tasks to move us toward “curating the context window” and “cleaning up junk.” Each is self-contained and can be picked up by the coder agent immediately:
+- Extend `_cleanup_junk()` to purge Python‐cache artifacts
+- • In coder.py’s `_cleanup_junk()`, after the existing steps, walk the repo and delete all `__pycache__` directories and `*.pyc` files
+- • This will keep the working tree clean and reduce noise in any file‐snapshots or backups
+- Create `context_utils.py` with a simple “trim earliest” function
+- • Add a new module `root/context_utils.py` defining:
+- ```python
+- def trim_lines(lines: list[str], max_lines: int) -> list[str]:
+- """Keep only the last max_lines lines."""
+- return lines[-max_lines:]
+- ```
+- • Expose a wrapper that can load a text file, trim it, and rewrite it—e.g. for logs, pending_tasks.md, etc
+- Hook the trimmer into `apply_task()` so we never overshoot context limits
+- • In `apply_task()`, before calling `chat_completion()`, load and trim any large inputs (e.g. the snapshot from `_snapshot_codebase()` and/or logs) using the new `trim_lines()` helper
+- • This ensures each LLM call stays safely under a configurable token/line budget and prunes old junk automatically
+- These three tasks together will automate both file‐system junk cleanup and context window curation, keeping every iteration lightweight and “intelligent.”
