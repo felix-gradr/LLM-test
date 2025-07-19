@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-import json
-import os
 import memory
-import traceback
 from test_runner import run_tests
 from dotenv import load_dotenv
-from datetime import datetime, timezone
 from pathlib import Path
+from orchestrator import TaskRouter
+
 
 # ---------------------------------------------------------------------- #
 #  Code-safety helpers (auto-inserted by SelfCoder)
@@ -118,7 +116,7 @@ def read_codebase(root: Path) -> dict[str, str]:
     return files
 
 
-def agent_step(root: Path) -> None:
+def agent_step(root: Path, model="o3-ver1") -> None:
     """
     Run one full reasoning/coding cycle using the orchestrator.
 
@@ -176,4 +174,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-from orchestrator import TaskRouter
