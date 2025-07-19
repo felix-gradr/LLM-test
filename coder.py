@@ -4,7 +4,8 @@
 For now, this is a stub that records the task to `pending_tasks.md`.
 Future iterations will expand this into actual code-editing logic.
 """
-from pathlib import Path, datetime as _dt
+from pathlib import Path
+import datetime as _dt
 
 _ROOT = Path(__file__).parent
 
