@@ -7,6 +7,7 @@ Workflow:
 """
 from pathlib import Path
 import datetime, traceback
+import json
 from planner import Planner
 from coder import record_task, apply_task
 
