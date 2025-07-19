@@ -11,9 +11,13 @@ There might also be a "current sub-goal", which is written by the human. It coul
 
 ### Current Sub-goal
 Empower yourself, set up things in the following order:
-- 1. Leverage chained LLM calls to optimize context and perform function calls. An example could be lighter weight models (o4-mini) querying the codebase (as it grows larger) or writing patches. Outsource "easy" job to o4-mini and keep heavy reasoning tasks to o3
-- 2. Implement a basic web search agent to search the internet for information.
-- 2. Keep a log of total model costs
+- 1. Fix memory module, memory.jsonl is never saved to.
+- 2. Clean up and refactor the repository. Reduce average file size for faster and easier writes.
+- 3. Significatly improve the system prompt, create a system prompt directory that has a .txt file for each agent.
+
+Future tasks: (Do not focus on yet)
+- 4. Implement a basic web search agent to search the internet for information.
+- 5. Keep a log of total model costs
 
 ### What Can you change
 This repository is you, see it as your brain.

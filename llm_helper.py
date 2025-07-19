@@ -59,6 +59,7 @@ def call_chat(
     """
     client = _get_client()
     last_err = None
+    temperature = 1 # Only a temperature of 1 is supported by o4-mini AND o3-ver1 models. //Human
     for attempt in range(1, _MAX_RETRIES + 1):
         try:
             resp = client.chat.completions.create(
