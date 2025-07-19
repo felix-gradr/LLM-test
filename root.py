@@ -91,7 +91,7 @@ def agent_step(root: Path, model: str = "o3") -> None:
     """Run one reasoning / coding cycle."""
     snapshot = read_codebase(root)
     # Truncate to avoid blowing past context limits
-    joined = "\n".join(f"## {p}\n{c}" for p, c in snapshot.items())[:12000]
+    joined = "\n".join(f"## {p}\n{c}" for p, c in snapshot.items())[:100000]
 
     user_prompt = (
         f"Today is {datetime.utcnow().date()}.\n"
