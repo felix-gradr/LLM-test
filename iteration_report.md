@@ -131,3 +131,16 @@
 - create a minimal `X.py` in the repo root (or a dedicated `stubs/` folder) so future imports succeed,
 - then retry the failed operation
 - This prevents new, unexpected import errors from completely blocking progress
+
+### 2025-07-19T14:54:11.364689+00:00
+- Here are three small, high-leverage chores that will substantially harden your system and guard against complete failure:
+- “Create a minimal `error_logger` stub module”
+- Add a new file `error_logger.py` that defines a simple logger (e.g. catches and writes stack traces to disk)
+- Have it expose at least one function (e.g. `log_exception(exc: Exception) -> None`) so that any missing‐module errors in `root.py` can’t blow up the process
+- “Wrap the top‐level entry in `root.py` in a universal try/except”
+- Modify `root.py` (the code that runs under `if __name__=='__main__':`) so that all exceptions are caught, passed to `error_logger.log_exception()`, and then handed off to your fallback agent
+- This ensures `python -m root` never crashes outright
+- “Add an automated sanity check in your fallback agent”
+- In `fallback.py` (or wherever you dispatch to fallback), before attempting any LLM work, run `compileall.compile_dir(...)`
+- If there are syntax errors, immediately restore from the most recent backup and log the incident, then proceed
+- This closes the loop: any broken commit triggers a rollback and still makes “intelligent progress.”
