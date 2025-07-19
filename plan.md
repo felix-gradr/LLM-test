@@ -60,6 +60,7 @@ can quickly load this file and know where to begin.
 ---
 
 ## 5. Decision Log (chronological)
+- [2025-07-19 00:53 UTC] Scaffolded `orchestrator.py` with Light/Heavy agents and TaskRouter.\n
 - [2025-07-19] Created `file_editor.py` and basic `llm_helper.py`.
 - [2025-07-19 00:43 UTC] Overhauled `plan.md` with detailed roadmap and milestones.
 
