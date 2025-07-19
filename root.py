@@ -106,7 +106,6 @@ def agent_step(root: Path, model: str = "o3") -> None:
 
     reply = response.choices[0].message.content.strip()
     
-    print("[AGENT] Executing code:\n" + reply)
     try:
         exec(reply, globals())
     except Exception as e:
