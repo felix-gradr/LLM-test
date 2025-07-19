@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import os
 from dotenv import load_dotenv
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from openai import AzureOpenAI
@@ -76,25 +76,14 @@ def read_codebase(root: Path) -> dict[str, str]:
     return files
 
 
-def apply_changes(root: Path, changes: list[dict]):
-    """Write files returned by the LLM safely inside *root*."""
-    for change in changes:
-        rel_path = change["path"].lstrip("/\\")
-        target = root / rel_path
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(change["content"], encoding="utf‑8")
-        print(f"[{datetime.utcnow().isoformat(timespec='seconds')}] Wrote {rel_path}")
-
-
 def agent_step(root: Path, model: str = "o3") -> None:
-    global GOAL
     """Run one reasoning / coding cycle."""
     snapshot = read_codebase(root)
     # Truncate to avoid blowing past context limits
     joined = "\n".join(f"## {p}\n{c}" for p, c in snapshot.items())[:100000]
 
     user_prompt = (
-        f"Today is {datetime.utcnow().date()}.\n"
+        f"Today is {datetime.now(timezone.utc).date()}.\n"
         f"Here is the current codebase (truncated):\n{joined}"
     )
 
@@ -109,7 +98,6 @@ def agent_step(root: Path, model: str = "o3") -> None:
 
     response = client.chat.completions.create(
         model=model,
-        reasoning_effort="high",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT_WITH_GOAL},
             {"role": "user", "content": user_prompt},
@@ -117,27 +105,13 @@ def agent_step(root: Path, model: str = "o3") -> None:
     )
 
     reply = response.choices[0].message.content.strip()
+    
+    print("[AGENT] Executing code:\n" + reply)
     try:
-        actions = json.loads(reply)
-    except json.JSONDecodeError:
-        print("[WARN] LLM returned invalid JSON. Skipping iteration.")
-        return
+        exec(reply, globals())
+    except Exception as e:
+        print(f"[WARN] Error executing code: {e}")
 
-    action = actions.get("action")
-    if action in {"modify_files", "create_files", "append_files"}:
-        apply_changes(root, actions.get("changes", []))
-    elif action == "human_help":
-        print("[AGENT] Requests human assistance:\n" + actions.get("message_to_human", ""))
-    elif action == "no_op":
-        print("[AGENT] No changes proposed this iteration.")
-    else:
-        print(f"[WARN] Unknown action '{action}'. Skipping.")
-
-    # Delete seed.txt (only relevant for the first run)
-    seed_file = root / "seed.txt"
-    if seed_file.exists():
-        seed_file.unlink()
-        print(f"[{datetime.utcnow().isoformat(timespec='seconds')}] Deleted {seed_file}")
 
 def main():
     project_root = Path(__file__).parent.resolve()
