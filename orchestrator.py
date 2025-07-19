@@ -85,3 +85,77 @@ class TaskRouter:
         summary = LightAgent.summarise_codebase(self.snapshot)
         patch_code = HeavyAgent.propose_patch(summary, self.goal)
         return patch_code
+
+    # ==== MULTI AGENT v1 BEGIN ====
+        def generate(self) -> str:  # noqa: C901, WPS231 – long method is acceptable here
+            """Multi-step patch generation using planning, assignment and worker agents."""
+            try:
+                from pathlib import Path  # local import keeps global namespace clean
+                import json
+                import llm_helper  # already part of the repo
+
+                # -------------------------------------------------
+                # 1. Cheap repo summary (LightAgent, o4-mini)
+                # -------------------------------------------------
+                summary = self.light_agent.summarise_repository()
+
+                # -------------------------------------------------
+                # 2. High-level strategic plan (PlanningAgent, o3)
+                # -------------------------------------------------
+                goal_text = Path(__file__).with_name("goal.md").read_text(encoding="utf-8")
+                planning_prompt = (
+                    "You are the PLANNING agent for a self-developing codebase.\n"
+                    "Produce a concise JSON dictionary with one key, 'plan', containing an ordered "
+                    "list of high-level actions that move the project towards its immutable goal "
+                    "and current sub-goal.\n\n"
+                    f"Immutable goal & sub-goal:\n{goal_text}\n"
+                    "Repository summary:\n"
+                    f"{summary}\n"
+                    "Respond with valid JSON ONLY."
+                )
+                plan_json_raw = llm_helper.ask_o3(planning_prompt)
+                plan = json.loads(plan_json_raw).get("plan", [])
+                if not plan:
+                    raise ValueError("Planning agent returned an empty plan.")
+
+                # -------------------------------------------------
+                # 3. Concrete tasks (AssignmentAgent, o3)
+                # -------------------------------------------------
+                assignment_prompt = (
+                    "You are the ASSIGNMENT agent.\n"
+                    "Break the following strategic plan into the smallest possible, independent "
+                    "coding tasks that can each be executed in a single patch.\n"
+                    "Return a JSON list of task strings.\n\n"
+                    f"Strategic plan JSON:\n{plan_json_raw}"
+                )
+                tasks_raw = llm_helper.ask_o3(assignment_prompt)
+                tasks = json.loads(tasks_raw)
+                if not tasks:
+                    raise ValueError("Assignment agent produced no tasks.")
+                current_task = tasks[0]
+
+                # -------------------------------------------------
+                # 4. Patch for first task (WorkerAgent, o4)
+                # -------------------------------------------------
+                worker_prompt = (
+                    "You are the WORKER agent. Implement the requested change as a Python patch.\n"
+                    "The patch MUST:\n"
+                    " • Use pathlib for cross-platform file access\n"
+                    " • Be enclosed in a single Python code block ( ... )\n"
+                    " • Contain NO additional commentary.\n\n"
+                    f"Immutable goal & sub-goal:\n{goal_text}\n"
+                    f"Repository summary:\n{summary}\n"
+                    f"Your task: {current_task}"
+                )
+                patch = llm_helper.ask_o4(worker_prompt)
+                return patch
+
+            except Exception as exc:  # pragma: no cover – safety net
+                # If anything fails, fall back to the original single-step behaviour.
+                try:
+                    return self.heavy_agent.propose_patch()
+                except Exception:
+                    # Last-ditch effort: surface the error so it gets logged upstream.
+                    raise exc
+    # ==== MULTI AGENT v1 END ====
+    
