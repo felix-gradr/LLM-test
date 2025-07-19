@@ -105,3 +105,11 @@
 - • Use `coder.record_task(...)` to append a “fix this startup exception” task to `pending_tasks.md`
 - • Invoke `coder.apply_task(...)` so the agent immediately attempts an automated repair
 - – Impact: fallback now not only logs, but proactively spins up an LLM‐driven fix and ensures we never get permanently stuck
+
+### 2025-07-19T14:43:56.914111+00:00
+- Here are three bite-sized, high-impact tasks to shore up safety and avoid total “crashes” going forward:
+- Wrap the entire `root.py` entry‐point in a top‐level try/except that on *any* Exception automatically invokes your `fallback.py` agent instead of blowing up
+- ­– Ensures that if anything ever raises, you still make LLM‐driven progress
+- Add a minimal `error_logger.py` stub in the repo (no `__future__` imports) that defines a “log_exception(e: Exception)” function
+- ­– Satisfies the missing‐module error and gives you a safe hook to capture any uncaught errors
+- Create a tiny “lint” utility (e.g. `fix_future_imports.py`) that scans every `.py` file for `from __future__` lines *not* in the first two lines, moves them to the top, and rewrites the file. Wire this into your startup so future‐import ordering errors never slip through again

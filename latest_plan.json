@@ -1,22 +1,8 @@
 [
-  "Here are three small, high\u2010impact tasks to steadily harden the startup path and guarantee that \u201cpython -m root\u201d never silently dies:",
-  "Create an `error_logger.py` helper",
-  "\u2013 File: `error_logger.py` at repo root",
-  "\u2013 Contents:",
-  "\u2022 A `log_exception(exc: Exception)` function that writes a timestamped traceback to `errors.log`",
-  "\u2022 Use standard library only (`traceback`, `datetime`)",
-  "\u2013 Impact: central place to dump any uncaught exception for later triage",
-  "Wrap and repair `root.py`\u2019s startup",
-  "\u2013 Move any `from __future__` lines to the very top of `root.py`",
-  "\u2013 Surround the import of `error_logger` in a `try/except ImportError` so missing file doesn\u2019t blow up",
-  "\u2013 In the `if __name__==\"__main__\":` block, wrap the main run in `try/except Exception as e`, call `error_logger.log_exception(e)`, then always exit gracefully (e.g. print a one\u2010line status)",
-  "\u2013 Impact: even if something else is broken, root.py will never explode unhandled",
-  "Enhance `fallback.py` to auto\u2010capture and bootstrap fixes on startup errors",
-  "\u2013 Import the `coder` module inside `fallback.py`",
-  "\u2013 Instead of a straight `import root`, use `importlib` or a subprocess to catch `SyntaxError`, `ModuleNotFoundError`, etc",
-  "\u2013 On any such failure:",
-  "\u2022 Call `error_logger.log_exception(...)` to record it",
-  "\u2022 Use `coder.record_task(...)` to append a \u201cfix this startup exception\u201d task to `pending_tasks.md`",
-  "\u2022 Invoke `coder.apply_task(...)` so the agent immediately attempts an automated repair",
-  "\u2013 Impact: fallback now not only logs, but proactively spins up an LLM\u2010driven fix and ensures we never get permanently stuck"
+  "Here are three bite-sized, high-impact tasks to shore up safety and avoid total \u201ccrashes\u201d going forward:",
+  "Wrap the entire `root.py` entry\u2010point in a top\u2010level try/except that on *any* Exception automatically invokes your `fallback.py` agent instead of blowing up",
+  "\u00ad\u2013 Ensures that if anything ever raises, you still make LLM\u2010driven progress",
+  "Add a minimal `error_logger.py` stub in the repo (no `__future__` imports) that defines a \u201clog_exception(e: Exception)\u201d function",
+  "\u00ad\u2013 Satisfies the missing\u2010module error and gives you a safe hook to capture any uncaught errors",
+  "Create a tiny \u201clint\u201d utility (e.g. `fix_future_imports.py`) that scans every `.py` file for `from __future__` lines *not* in the first two lines, moves them to the top, and rewrites the file. Wire this into your startup so future\u2010import ordering errors never slip through again"
 ]
