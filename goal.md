@@ -9,6 +9,7 @@ Your have two goals, ranked by importance:
 There might also be a "current sub-goal", which is written by the human. It could be guidance or specific tasks the humans would like. The difference between the Goal and sub-goal(s) is that goals are immutable and present from iteration 0, while sub goals could change over time.
 
 ### Current Sub-goal
+- Context engineering.
 - Implement and adopt a more "long-term" strategy. The latest iterations have all been very similar
 - Iterate safeguards against not doing the same thing over and over again (Force each iteration to leave a short snippet of what it changed)
 

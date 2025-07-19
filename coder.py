@@ -5,6 +5,9 @@ Capabilities:
 2. apply_task(task)   – ask an LLM for Python code to implement the task and execute it safely
 """
 from pathlib import Path
+import difflib
+import shutil
+import tempfile
 import datetime as _dt, traceback
 from llm_utils import chat_completion
 # === Safety helpers (auto-inserted) ===
@@ -25,6 +28,50 @@ def _safe_exec(code: str):
     }
     exec(code, env)
 
+
+
+def _create_backup() -> Path:
+    """Copy all .py files (excluding virtual envs) into a temp dir and return its Path."""
+    backup_root = Path(tempfile.mkdtemp(prefix="code_backup_", dir=_ROOT))
+    for p in _ROOT.rglob("*.py"):
+        if any(x in p.parts for x in ("venv", ".venv")):
+            continue
+        dest = backup_root / p.relative_to(_ROOT)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(p, dest)
+    return backup_root
+
+
+def _write_change_diff(backup_dir: Path) -> None:
+    """Write unified diff between backup_dir and current codebase to change_diffs."""
+    diff_dir = _ROOT / "change_diffs"
+    diff_dir.mkdir(exist_ok=True)
+    ts = _dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    diff_path = diff_dir / f"{ts}.diff"
+    parts = []
+    for p in _ROOT.rglob("*.py"):
+        if any(x in p.parts for x in ("venv", ".venv")):
+            continue
+        rel = p.relative_to(_ROOT)
+        old_file = backup_dir / rel
+        new_file = p
+        if not old_file.exists():
+            old_text = []
+        else:
+            old_text = old_file.read_text(encoding="utf-8").splitlines()
+        new_text = new_file.read_text(encoding="utf-8").splitlines()
+        if old_text == new_text:
+            continue
+        diff = difflib.unified_diff(
+            old_text,
+            new_text,
+            fromfile=f"a/{rel}",
+            tofile=f"b/{rel}",
+            lineterm=""
+        )
+        parts.extend(list(diff))
+    if parts:
+        diff_path.write_text("\n".join(parts), encoding="utf-8")
 
 def _restore_backup(backup_dir: Path) -> None:
     """Restore files from the given backup directory."""
@@ -63,6 +110,57 @@ def _snapshot_codebase(max_chars: int = 6000) -> str:
 def apply_task(task: str, model: str = "o3-ver1") -> str:
     """Use an LLM to generate Python code that fulfils `task` and execute it.
 
+    Creates a temporary backup of the codebase; if execution or subsequent
+    static syntax checks fail, the backup is automatically restored.
+    Returns a short status string.
+    """
+    backup_dir = _create_backup()
+
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                "You are a coding agent operating inside an existing repo.
+"
+                "Given a task description, output ONLY executable Python code (no markdown)
+"
+                "that edits files in the repository to accomplish the task.
+"
+                "You may use standard library only.
+"
+            ),
+        },
+        {
+            "role": "user",
+            "content": f"Task: {task}
+
+Codebase snapshot:
+{_snapshot_codebase()}",
+        },
+    ]
+    reply = chat_completion(messages, preferred_model=model)
+    # Persist reply for audit
+    gen_file = _ROOT / "generated_coder_reply.py"
+    gen_file.write_text(reply, encoding="utf-8")
+
+    status = "ok"
+    try:
+        _safe_exec(reply)
+        if not _run_static_syntax_check():
+            raise RuntimeError("Static syntax check failed after code execution.")
+    except Exception as e:
+        _restore_backup(backup_dir)
+        status = f"error: {e}"
+        traceback.print_exc()
+
+    # Log outcome
+    log = _ROOT / "coder.log"
+    with log.open("a", encoding="utf-8") as fp:
+        fp.write(f"{_dt.datetime.utcnow().isoformat()} | {task} -> {status}
+")
+    if status == 'ok':
+        _write_change_diff(backup_dir)
+    return status
     Returns a short status string.
     """
     messages = [
