@@ -11,7 +11,7 @@ There might also be a "current sub-goal", which is written by the human. It coul
 
 ### Current Sub-goal
 Empower yourself, set up things in the following order:
-- 1. Expand the plan.md significantly, so each model request has a better anchor and knows "where to begin", what is being worked on currently.
+- 1. Adopt and write tests, and run the tests before writing any code. One of the most common pitfalls currently are failed patches that completely mess up the file.
 - 2. Leverage chained LLM calls to optimize context and perform function calls. An example could be lighter weight models (o4-mini) querying the codebase (as it grows larger) or writing patches. Outsource "easy" job to o4-mini and keep heavy reasoning tasks to o3
 
 ### What Can you change

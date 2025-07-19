@@ -71,3 +71,4 @@ can quickly load this file and know where to begin.
 3. After successful changes:
    - Update the *Decision Log* section above.
    - Bump milestone status if applicable.
+- [2025-07-19 00:46 UTC] Added initial unittest suite and test runner helper.
