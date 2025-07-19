@@ -149,10 +149,15 @@ def agent_step(root: Path, model="o3-ver1") -> None:
     try:
         exec(patch_code, globals())
     except Exception as exc:
-        print(f"[EXEC] Error while applying patch: {exc}")
-        memory.log_error(exc, context="exec(patch_code)")
-        _restore_snapshot(root, _pre_snapshot)
-        return
+        try:
+            patch_code = patch_code.replace("```python", "")
+            patch_code = patch_code.replace("```", "")
+            exec(patch_code, globals())
+        except Exception as exc:
+            print(f"[EXEC] Error while applying patch: {exc}")
+            memory.log_error(exc, context="exec(patch_code)")
+            _restore_snapshot(root, _pre_snapshot)
+            return
 
     # 5. Validate compilation & tests post-patch
     if not _validate_codebase(root):
