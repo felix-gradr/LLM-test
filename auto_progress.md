@@ -1,1 +1,1 @@
-UTC 2025-07-19T14:29:15.279151 | task: Here are three small, high-leverage tasks to get basic error‐logging wired in across the codebase: | status: error: name '__file__' is not defined
+UTC 2025-07-19T14:31:37.736625 | task: Here are three small, high-impact tasks that will get us basic error logging in place without touching `goal.md` or `.env`.  Once these land, any downstream error (in your main loop, in `coder`, or in `fallback`) will at least be captured in a log file so we can iterate on a “current issues” dashboard later | status: error: name '__file__' is not defined
