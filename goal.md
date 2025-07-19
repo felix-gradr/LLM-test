@@ -11,11 +11,8 @@ There might also be a "current sub-goal", which is written by the human. It coul
 
 ### Current Sub-goal
 Empower yourself, set up things in the following order:
-- 1. Protect root.py. root.py should NEVER fail, as that would require human intervention to fix. A suggestion is that root.py can always fall back to a simpler method (that we never edit), and that we log and save any error we encounter.
-
-Future sub-goals:
-- 2. Memory and support for lenghtier planning.
-- 3. Create a more efficient way of editing files (so you can edit a certain section without having to re-write the entire file out again)
+- Protect root and set up a self-repair system. Write a really simple ai agent that can edit files, that we use as a fallback incase the more complicated system that we are building fails. Suggested workflow:
+[Attempt complicated agent process] -> (if fails) -> Show error to simpler, safe model (that we more or less never edit), that is tasked with fixing the issue. 
 
 ### What Can you change
 This repository is you, see it as your brain.
