@@ -192,6 +192,39 @@ def main():
     project_root = Path(__file__).parent.resolve()
     agent_step(project_root, model="o3-ver1")
 
+import traceback
+from error_logger import log_message
+
+def safe_execute() -> None:
+    """Run the orchestrator with a safety net & degraded fallback."""
+    try:
+        import orchestrator  # local import to avoid circular deps
+        entrypoint = getattr(
+            orchestrator,
+            "main",
+            getattr(orchestrator, "run", None),
+        )
+        if entrypoint is None:
+            raise AttributeError(
+                "orchestrator module lacks both `main` and `run`."
+            )
+        entrypoint()
+    except Exception as exc:  # noqa: BLE001
+        tb = traceback.format_exc()
+        log_message(f"[root.py] Primary execution failed: {exc}\n{tb}")
+
+        # -------------- Degraded fallback path --------------
+        try:
+            from orchestrator import HeavyAgent  # type: ignore
+            HeavyAgent().run()  # pyright: ignore[reportGeneralTypeIssues]
+            log_message("[root.py] Fallback HeavyAgent succeeded.")
+        except Exception as fallback_exc:  # noqa: BLE001
+            fallback_tb = traceback.format_exc()
+            log_message(
+                "[root.py] Fallback HeavyAgent also failed: "
+                f"{fallback_exc}\n{fallback_tb}"
+            )
+            # Swallow all exceptions to guarantee graceful exit.
 
 if __name__ == "__main__":
-    main()
+    safe_execute()
