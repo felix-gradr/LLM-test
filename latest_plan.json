@@ -1,8 +1,18 @@
 [
-  "Here are three bite-sized, high-impact tasks to shore up safety and avoid total \u201ccrashes\u201d going forward:",
-  "Wrap the entire `root.py` entry\u2010point in a top\u2010level try/except that on *any* Exception automatically invokes your `fallback.py` agent instead of blowing up",
-  "\u00ad\u2013 Ensures that if anything ever raises, you still make LLM\u2010driven progress",
-  "Add a minimal `error_logger.py` stub in the repo (no `__future__` imports) that defines a \u201clog_exception(e: Exception)\u201d function",
-  "\u00ad\u2013 Satisfies the missing\u2010module error and gives you a safe hook to capture any uncaught errors",
-  "Create a tiny \u201clint\u201d utility (e.g. `fix_future_imports.py`) that scans every `.py` file for `from __future__` lines *not* in the first two lines, moves them to the top, and rewrites the file. Wire this into your startup so future\u2010import ordering errors never slip through again"
+  "Here are three bite-sized, high-impact tasks you can pick up next to shore up safety and prevent total failures:",
+  "Wrap the `root.py` entry point in a top-level try/except that",
+  "catches *all* exceptions,",
+  "logs the full traceback to an `error_logger` module (and even auto-creates a stub if it doesn\u2019t exist),",
+  "then hands control off to `fallback.py`\u2019s recover routine",
+  "This guarantees that *any* crash in `root.py` gets captured and delegated to the fallback agent instead of killing the process",
+  "Add a \u201cpre-flight\u201d syntax checker at the very start of `root.py` (before doing any imports or logic):",
+  "iterate over every `.py` file in the repo,",
+  "call Python\u2019s built-in `compile(source, filename, 'exec')` to surface SyntaxErrors early,",
+  "if you find any syntax issues, log them and again invoke the fallback agent rather than proceeding",
+  "This will catch misplaced `from __future__` lines or other typos before they bubble up",
+  "Enhance `fallback.py` with automatic stub-generation for missing modules:",
+  "when it sees a `ModuleNotFoundError: No module named 'X'` in an exception,",
+  "create a minimal `X.py` in the repo root (or a dedicated `stubs/` folder) so future imports succeed,",
+  "then retry the failed operation",
+  "This prevents new, unexpected import errors from completely blocking progress"
 ]

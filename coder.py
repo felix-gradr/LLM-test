@@ -7,6 +7,28 @@ Capabilities:
 from pathlib import Path
 import datetime as _dt, traceback
 from llm_utils import chat_completion
+# === Safety helpers (auto-inserted) ===
+def _run_static_syntax_check() -> bool:
+    """Return True if all .py files compile successfully."""
+    import compileall
+    try:
+        return compileall.compile_dir(str(_ROOT), quiet=1, force=True)
+    except Exception:
+        return False
+
+def _restore_backup(backup_dir: Path) -> None:
+    """Restore files from the given backup directory."""
+    if not backup_dir or not backup_dir.exists():
+        return
+    for p in backup_dir.rglob("*.py"):
+        rel = p.relative_to(backup_dir)
+        dest = _ROOT / rel
+        try:
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            p.replace(dest)
+        except Exception:
+            continue
+
 
 _ROOT = Path(__file__).parent
 

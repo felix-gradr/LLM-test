@@ -113,3 +113,21 @@
 - Add a minimal `error_logger.py` stub in the repo (no `__future__` imports) that defines a “log_exception(e: Exception)” function
 - ­– Satisfies the missing‐module error and gives you a safe hook to capture any uncaught errors
 - Create a tiny “lint” utility (e.g. `fix_future_imports.py`) that scans every `.py` file for `from __future__` lines *not* in the first two lines, moves them to the top, and rewrites the file. Wire this into your startup so future‐import ordering errors never slip through again
+
+### 2025-07-19T14:49:24.793633+00:00
+- Here are three bite-sized, high-impact tasks you can pick up next to shore up safety and prevent total failures:
+- Wrap the `root.py` entry point in a top-level try/except that
+- catches *all* exceptions,
+- logs the full traceback to an `error_logger` module (and even auto-creates a stub if it doesn’t exist),
+- then hands control off to `fallback.py`’s recover routine
+- This guarantees that *any* crash in `root.py` gets captured and delegated to the fallback agent instead of killing the process
+- Add a “pre-flight” syntax checker at the very start of `root.py` (before doing any imports or logic):
+- iterate over every `.py` file in the repo,
+- call Python’s built-in `compile(source, filename, 'exec')` to surface SyntaxErrors early,
+- if you find any syntax issues, log them and again invoke the fallback agent rather than proceeding
+- This will catch misplaced `from __future__` lines or other typos before they bubble up
+- Enhance `fallback.py` with automatic stub-generation for missing modules:
+- when it sees a `ModuleNotFoundError: No module named 'X'` in an exception,
+- create a minimal `X.py` in the repo root (or a dedicated `stubs/` folder) so future imports succeed,
+- then retry the failed operation
+- This prevents new, unexpected import errors from completely blocking progress
