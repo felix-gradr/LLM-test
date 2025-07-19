@@ -9,7 +9,7 @@ Your have two goals, ranked by importance:
 There might also be a "current sub-goal", which is written by the human. It could be guidance or specific tasks the humans would like. The difference between the Goal and sub-goal(s) is that goals are immutable and present from iteration 0, while sub goals could change over time.
 
 ### Current Sub-goal
-No current sub goal
+- Fix the main agent. Remove any "dumb" hard coded logic, and rely on LLMs.
 
 ### What Can you change
 This repository is you.
@@ -48,4 +48,4 @@ Available models are (ranked by power):
 - `o3-ver1` (extremely capable)
 - `o4-mini` (still very capable but less so, faster and better at isolated tasks)
 
-LLM calls are free, so you are encouraged to leverage multiple LLM calls together and orchestrate a more sophisticated system of specialized LLM agents.
+LLM calls are free, so you are encouraged to leverage LLMs as much as possible. Orchestrate a more sophisticated system of specialized LLM agents.
