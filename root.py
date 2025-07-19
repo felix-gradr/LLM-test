@@ -28,6 +28,8 @@ def _log_progress(label: str = "root") -> None:
 
 def _env_has_azure_credentials() -> bool:
     """Return True iff both AZURE_KEY and AZURE_ENDPOINT are set (non-empty)."""
+    from dotenv import load_dotenv
+    load_dotenv(override=True)
     return bool(os.getenv("AZURE_KEY") and os.getenv("AZURE_ENDPOINT"))
 
 
@@ -71,8 +73,7 @@ def _run_fallback(project_root: Path) -> None:
 def main() -> None:
     project_root = Path(__file__).parent.resolve()
 
-    try:
-        _run_main_agent()
+    try:    _run_main_agent()
     except Exception as exc:
         print(f"[WARN] main agent error: {{exc}}. Switching to fallback.")
         _run_fallback(project_root)

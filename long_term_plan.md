@@ -1,0 +1,15 @@
+# Long-Term Plan for SelfCoder
+The plan is represented as a checklist.  
+Each main_agent run will automatically mark one unchecked item as done.
+
+## Milestones
+- [ ] Establish a robust logging and progress-tracking mechanism.
+- [ ] Refactor main_agent to support modular “skills”.
+- [ ] Implement a skill registry and dynamic loading.
+- [ ] Add automated unit-test generation for each new skill.
+- [ ] Introduce multi-model orchestration (o3-ver1 + o4-mini).
+- [ ] Implement self-evaluation and reflection loops.
+- [ ] Enable safe autonomous refactoring across the codebase.
+- [ ] Develop a user-query interface for external tasks.
+- [ ] Harden fallback agent with sandboxed execution.
+- [ ] Continuous integration setup with linting & tests.
