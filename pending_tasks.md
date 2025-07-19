@@ -14,3 +14,4 @@
 - [2025-07-19T15:25:45.676773] Here are three bite-sized, high-impact tasks that will kick-start your long-term strategy and enforce “no repeats” by logging exactly what changed each run:
 - [2025-07-19T15:43:53.041255] Here are three small, high‐impact tasks that directly target “cleaning up junk” and “curating the LLM context window.”  Each one can be implemented in isolation, yet together they will (a) keep your repo tidy, (b) keep your LLM inputs lean, and (c) automatically remove the one‐time seed.txt on first run
 - [2025-07-19T15:45:05.444132] Here are three bite-sized, high-impact tasks to move us toward “curating the context window” and “cleaning up junk.” Each is self-contained and can be picked up by the coder agent immediately:
+- [2025-07-19T15:51:30.862055] Enhance the _cleanup_junk() function to recursively delete __pycache__ directories and .pyc files

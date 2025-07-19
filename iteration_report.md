@@ -241,3 +241,8 @@
 - • In `apply_task()`, before calling `chat_completion()`, load and trim any large inputs (e.g. the snapshot from `_snapshot_codebase()` and/or logs) using the new `trim_lines()` helper
 - • This ensures each LLM call stays safely under a configurable token/line budget and prunes old junk automatically
 - These three tasks together will automate both file‐system junk cleanup and context window curation, keeping every iteration lightweight and “intelligent.”
+
+### 2025-07-19T15:52:26.189078+00:00
+- Enhance the _cleanup_junk() function to recursively delete __pycache__ directories and .pyc files
+- Add logic to trim pending_tasks.md down to the last N entries (e.g., 50) to prevent context bloat
+- Implement a context curator module with a function that selects and summarizes recently modified .py files for LLM prompts

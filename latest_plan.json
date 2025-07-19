@@ -1,18 +1,5 @@
 [
-  "Here are three bite-sized, high-impact tasks to move us toward \u201ccurating the context window\u201d and \u201ccleaning up junk.\u201d Each is self-contained and can be picked up by the coder agent immediately:",
-  "Extend `_cleanup_junk()` to purge Python\u2010cache artifacts",
-  "\u2022 In coder.py\u2019s `_cleanup_junk()`, after the existing steps, walk the repo and delete all `__pycache__` directories and `*.pyc` files",
-  "\u2022 This will keep the working tree clean and reduce noise in any file\u2010snapshots or backups",
-  "Create `context_utils.py` with a simple \u201ctrim earliest\u201d function",
-  "\u2022 Add a new module `root/context_utils.py` defining:",
-  "```python",
-  "def trim_lines(lines: list[str], max_lines: int) -> list[str]:",
-  "\"\"\"Keep only the last max_lines lines.\"\"\"",
-  "return lines[-max_lines:]",
-  "```",
-  "\u2022 Expose a wrapper that can load a text file, trim it, and rewrite it\u2014e.g. for logs, pending_tasks.md, etc",
-  "Hook the trimmer into `apply_task()` so we never overshoot context limits",
-  "\u2022 In `apply_task()`, before calling `chat_completion()`, load and trim any large inputs (e.g. the snapshot from `_snapshot_codebase()` and/or logs) using the new `trim_lines()` helper",
-  "\u2022 This ensures each LLM call stays safely under a configurable token/line budget and prunes old junk automatically",
-  "These three tasks together will automate both file\u2010system junk cleanup and context window curation, keeping every iteration lightweight and \u201cintelligent.\u201d"
+  "Enhance the _cleanup_junk() function to recursively delete __pycache__ directories and .pyc files",
+  "Add logic to trim pending_tasks.md down to the last N entries (e.g., 50) to prevent context bloat",
+  "Implement a context curator module with a function that selects and summarizes recently modified .py files for LLM prompts"
 ]
