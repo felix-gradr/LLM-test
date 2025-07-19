@@ -4,6 +4,17 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Dict, Any
+def log_error(exc: Exception, context: str | None = None) -> None:
+    """Persist *exc* details to memory for future debugging.
+    
+    Args:
+        exc: The caught exception instance.
+        context: Optional high-level description of where/why the error occurred.
+    """
+    import traceback
+    tb_str = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+    payload = f"{context or 'Error'}:\n{tb_str}"
+    add_memory(payload, meta={"kind": "error"})
 
 MEMORY_FILE = Path(__file__).parent / "memory.jsonl"
 MAX_SIZE_BYTES = 2 * 1024 * 1024  # 2 MB cap to avoid uncontrolled growth
