@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
-from memory import add_event, append_note
+from memory import add_event, append_note, load_memory
 from openai import AzureOpenAI
 
 load_dotenv(override=True)
@@ -44,11 +44,22 @@ def _load_memory() -> dict:
     return {}
 
 
-def _summarise_memory(max_chars: int = 4000) -> str:
-    """Return a truncated JSON representation of memory suitable for prompts."""
+def _summarise_memory(max_events: int = 20, max_notes: int = 10) -> str:
+    """Return a concise JSON snippet with the most recent events & notes.
+
+    Instead of dumping the entire memory file (which can grow unbounded), we
+    surface only the last *max_events* and *max_notes* entries.  This keeps
+    prompts small and focuses the LLM on the most relevant, recent context.
+    """
     mem = _load_memory()
-    text = json.dumps(mem, indent=2)[:max_chars]
-    return text
+    events = mem.get("events", [])[-max_events:]
+    notes = mem.get("notes", [])[-max_notes:]
+    subset = {"events": events, "notes": notes}
+    try:
+        return json.dumps(subset, indent=2)
+    except Exception:
+        # Fallback to a simple string representation if serialization fails
+        return str(subset)
 
 # --------------------------------------------------------------------------------------
 # .GITIGNORE UTILS (unchanged)
@@ -119,6 +130,8 @@ def _apply_full_writes(root: Path, changes: list[dict]):
         target = root / rel_path
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(change["content"], encoding="utf-8")
+        # Record in-memory event
+        add_event(f"wrote {rel_path}")
         print(f"[{datetime.utcnow().isoformat(timespec='seconds')}] Wrote {rel_path}")
 
 
@@ -142,6 +155,7 @@ def _apply_patches(root: Path, patches: list[dict]):
             print(f"[WARN] patch_files: pattern not found in {rel_path}.")
         else:
             target.write_text(new_content, encoding="utf-8")
+            add_event(f"patched {rel_path}")
             print(
                 f"[{datetime.utcnow().isoformat(timespec='seconds')}] Patched {rel_path} ({n} replacement{'s' if n!=1 else ''})"
             )

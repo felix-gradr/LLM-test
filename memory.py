@@ -27,12 +27,13 @@ def add_event(event: str):
     save_memory(mem)
 
 
-def append_note(note: str):
+def append_note(note: Any):
     """Append free-form, timestamped notes created by the agent.
 
-    This is intended for longer-term planning or thoughts the agent would like
-    to persist across iterations.  They are stored in the `notes` list in
-    memory.json so they can be surfaced in future prompts.
+    Accepts any JSON-serialisable Python object (str, dict, list, ...).  The
+    value is stored under the key `content` so it can be arbitrary.  This
+    relaxation allows the agent to persist richer context (e.g. structured
+    plans) instead of being limited to plain strings.
     """
     mem = load_memory()
     mem.setdefault("notes", []).append({
