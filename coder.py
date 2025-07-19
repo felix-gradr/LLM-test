@@ -42,6 +42,54 @@ def _restore_backup(backup_dir: Path) -> None:
 
 _ROOT = Path(__file__).parent
 
+def _cleanup_junk() -> None:
+    """Remove transient files and trim logs to keep the repo tidy.
+
+    1. Delete one-time seed.txt (if present)
+    2. Trim coder.log to the last 300 lines
+    3. Rotate generated_coder_reply.py into generated_backups/ (keep 3 most recent)
+    """
+    import time, shutil
+
+    # (1) Remove seed.txt on first run
+    seed = _ROOT / "seed.txt"
+    if seed.exists():
+        try:
+            seed.unlink()
+        except Exception:
+            pass
+
+    # (2) Trim coder.log
+    log = _ROOT / "coder.log"
+    if log.exists():
+        try:
+            lines = log.read_text(encoding="utf-8", errors="ignore").splitlines()
+            max_lines = 300
+            if len(lines) > max_lines:
+                log.write_text("\n".join(lines[-max_lines:]), encoding="utf-8")
+        except Exception:
+            pass
+
+    # (3) Rotate generated_coder_reply.py
+    gen = _ROOT / "generated_coder_reply.py"
+    if gen.exists():
+        try:
+            backup_dir = _ROOT / "generated_backups"
+            backup_dir.mkdir(exist_ok=True)
+            ts = int(time.time())
+            gen.replace(backup_dir / f"coder_reply_{ts}.py")
+            backups = sorted(backup_dir.glob("coder_reply_*.py"), key=lambda p: p.stat().st_mtime, reverse=True)
+            for p in backups[3:]:
+                try:
+                    p.unlink()
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+
+
+
 def record_task(task: str):
     ts = _dt.datetime.utcnow().isoformat()
     f = _ROOT / "pending_tasks.md"

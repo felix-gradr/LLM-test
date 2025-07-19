@@ -1,123 +1,109 @@
 from pathlib import Path
-import datetime as _dt, traceback, difflib
+import re
+import textwrap
 
-# === Existing imports remain ===
-from llm_utils import chat_completion
+ROOT = Path(__file__).parent
 
-# Rest of original coder.py up to _ROOT definition stays unchanged
-# We will append / inject new helpers and enhance existing functions below.
+target = ROOT / "coder.py"
+code = target.read_text(encoding="utf-8")
 
+# 1. Insert/replace _cleanup_junk function and call
+cleanup_func = textwrap.dedent("""\
+    def _cleanup_junk() -> None:
+        \"\"\"Remove transient files and trim logs to keep the repo tidy.
 
-# ------------------------------------------------------------
-# NEW: Executed-tasks tracking & diff logging helpers
-# ------------------------------------------------------------
-_EXECUTED = Path(__file__).parent / "executed_tasks.md"
-_DIFF_DIR = Path(__file__).parent / "change_diffs"
-_DIFF_DIR.mkdir(exist_ok=True)
+        1. Delete one-time seed.txt (if present)
+        2. Trim coder.log to the last 300 lines
+        3. Rotate generated_coder_reply.py into generated_backups/ (keep 3 most recent)
+        \"\"\"
+        import time, shutil
 
-def _has_executed(task: str) -> bool:
-    """Return True if the exact task string has already been executed."""
-    if not _EXECUTED.is_file():
-        return False
-    try:
-        existing = _EXECUTED.read_text(encoding="utf-8").splitlines()
-    except Exception:
-        return False
-    return any(t.split("] ", 1)[-1] == task for t in existing if "] " in t)
+        # (1) Remove seed.txt on first run
+        seed = _ROOT / "seed.txt"
+        if seed.exists():
+            try:
+                seed.unlink()
+            except Exception:
+                pass
 
-def _mark_executed(task: str):
-    """Append task to executed_tasks.md with timestamp."""
-    ts = _dt.datetime.utcnow().isoformat()
-    with _EXECUTED.open("a", encoding="utf-8") as fp:
-        fp.write(f"- [{ts}] {task}\n")
+        # (2) Trim coder.log
+        log = _ROOT / "coder.log"
+        if log.exists():
+            try:
+                lines = log.read_text(encoding="utf-8", errors="ignore").splitlines()
+                max_lines = 300
+                if len(lines) > max_lines:
+                    log.write_text("\\n".join(lines[-max_lines:]), encoding="utf-8")
+            except Exception:
+                pass
 
-def _dict_code_snapshot() -> dict[str, str]:
-    """Return mapping of relative .py file paths -> contents (utf-8)."""
-    root = Path(__file__).parent
-    snap = {}
-    for p in root.rglob("*.py"):
-        if any(x in p.parts for x in ("venv", ".venv")):
-            continue
-        try:
-            snap[str(p.relative_to(root))] = p.read_text(encoding="utf-8")
-        except Exception:
-            continue
-    return snap
+        # (3) Rotate generated_coder_reply.py
+        gen = _ROOT / "generated_coder_reply.py"
+        if gen.exists():
+            try:
+                backup_dir = _ROOT / "generated_backups"
+                backup_dir.mkdir(exist_ok=True)
+                ts = int(time.time())
+                gen.replace(backup_dir / f"coder_reply_{ts}.py")
+                backups = sorted(backup_dir.glob("coder_reply_*.py"), key=lambda p: p.stat().st_mtime, reverse=True)
+                for p in backups[3:]:
+                    try:
+                        p.unlink()
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+""")
 
-def _write_diff(before: dict[str, str], after: dict[str, str], task: str):
-    """Compute unified diff between before and after snapshots and persist."""
-    ts = _dt.datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-    diff_lines = []
-    all_keys = set(before) | set(after)
-    for key in sorted(all_keys):
-        pre = before.get(key, "").splitlines(keepends=True)
-        post = after.get(key, "").splitlines(keepends=True)
-        if pre == post:
-            continue
-        diff_lines.extend(difflib.unified_diff(
-            pre, post,
-            fromfile=f"a/{key}",
-            tofile=f"b/{key}",
-            lineterm=""
-        ))
-        diff_lines.append("")  # newline separator
-    if not diff_lines:
-        return  # nothing changed
-    diff_path = _DIFF_DIR / f"{ts}.diff"
-    header = f"# Task: {task}\n# Timestamp: {ts} UTC\n\n"
-    diff_path.write_text(header + "\n".join(diff_lines), encoding="utf-8")
+if "_cleanup_junk(" not in code:
+    # place cleanup function after _ROOT definition
+    pattern = r"^_ROOT\s*=\s*Path\(__file__\)\.parent"
+    m = re.search(pattern, code, flags=re.MULTILINE)
+    if m:
+        insert_at = m.end()
+        code = code[:insert_at] + "\n\n" + cleanup_func + "\n\n" + code[insert_at:]
 
-# ------------------------------------------------------------
-# PATCH: enhance apply_task
-# ------------------------------------------------------------
-def apply_task(task: str, model: str = "o3-ver1") -> str:
-    """Use an LLM to generate Python code that fulfils `task` and execute it.
+# Ensure _cleanup_junk() is invoked at import time (after _ROOT exists)
+if "_cleanup_junk()" not in code:
+    pattern = r"^_ROOT\s*=\s*Path\(__file__\)\.parent"
+    m = re.search(pattern, code, flags=re.MULTILINE)
+    if m:
+        # find the end of the line to insert call right after
+        insert_at = code.find("\n", m.end()) + 1
+        code = code[:insert_at] + "_cleanup_junk()\n" + code[insert_at:]
 
-    Returns a short status string.
-    """
-    # Skip if task already executed
-    if _has_executed(task):
-        return "skipped: already executed"
+# 2. Replace _snapshot_codebase with a leaner version
+snapshot_func = textwrap.dedent("""\
+    def _snapshot_codebase(max_chars: int = 6000, per_file_char_limit: int = 2000) -> str:
+        \"\"\"Return a truncated snapshot of the codebase.
 
-    before_snap = _dict_code_snapshot()  # snapshot before any change
+        - Skips virtual-env folders and backup directories
+        - Skips files larger than per_file_char_limit
+        - Truncates accumulated snapshot to max_chars
+        \"\"\"
+        parts = []
+        for p in sorted(_ROOT.rglob("*.py")):
+            if any(x in p.parts for x in ("venv", ".venv", "generated_backups")):
+                continue
+            try:
+                content = p.read_text()
+            except Exception:
+                continue
+            if len(content) > per_file_char_limit:
+                continue
+            parts.append(f"## {p}\\n{content}")
+            if sum(len(s) for s in parts) >= max_chars:
+                break
+        snapshot = "\\n".join(parts)
+        return snapshot[:max_chars]
+""")
 
-    messages = [
-        {
-            "role": "system",
-            "content": (
-                "You are a coding agent operating inside an existing repo.\n"
-                "Given a task description, output ONLY executable Python code (no markdown)\n"
-                "that edits files in the repository to accomplish the task.\n"
-                "You may use standard library only.\n"
-            ),
-        },
-        {
-            "role": "user",
-            "content": f"Task: {task}\n\nCodebase snapshot:\n{_snapshot_codebase()}",
-        },
-    ]
-    reply = chat_completion(messages, preferred_model=model)
-    # Persist reply for audit
-    gen_file = _ROOT / "generated_coder_reply.py"
-    gen_file.write_text(reply, encoding="utf-8")
+code = re.sub(
+    r"def _snapshot_codebase\([^\n]*\n(?:[^\\n]*\n)+?^\s*return[^\n]*",
+    snapshot_func.rstrip(),
+    code,
+    flags=re.MULTILINE,
+)
 
-    status = "ok"
-    try:
-        _safe_exec(reply)
-    except Exception as e:
-        status = f"error: {e}"
-        traceback.print_exc()
-
-    # Snapshot after execution & write diff if no error
-    after_snap = _dict_code_snapshot()
-    if status == "ok":
-        _write_diff(before_snap, after_snap, task)
-        _mark_executed(task)
-
-    # Log outcome
-    log = _ROOT / "coder.log"
-    with log.open("a", encoding="utf-8") as fp:
-        fp.write(f"{_dt.datetime.utcnow().isoformat()} | {task} -> {status}\n")
-    return status
-
-# Note: record_task and other existing code remain unchanged.
+# Write patched file
+target.write_text(code, encoding="utf-8")

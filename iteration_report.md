@@ -206,3 +206,20 @@
 - c) invokes the change-logger to generate the diff snippet
 - d) calls the iteration tracker to record that iteration’s metadata
 - This ensures every run automatically produces both a changelog snippet and a record, preventing silent repeats
+
+### 2025-07-19T15:44:47.565303+00:00
+- Here are three small, high‐impact tasks that directly target “cleaning up junk” and “curating the LLM context window.”  Each one can be implemented in isolation, yet together they will (a) keep your repo tidy, (b) keep your LLM inputs lean, and (c) automatically remove the one‐time seed.txt on first run
+- Task: Auto-remove seed.txt
+- In your main entrypoint (root.py), detect if `seed.txt` exists and delete it as soon as the run completes (or at startup)
+- This guarantees that after the first iteration, the seed file vanishes automatically—no more manual cleanup
+- Task: Filter junk out of `_snapshot_codebase`
+- Enhance `coder._snapshot_codebase()` to skip not just virtual‐env folders, but also:
+- • `__pycache__` directories
+- • `.pyc`, `.log`, `.tmp`, `.DS_Store` files
+- • `.git`, `.svn`, `.hg` folders
+- That way, every time you snapshot the repo for LLM editing, you’ll only include real code
+- Task: Truncate LLM context to the last N messages
+- In your `llm_utils.chat_completion()` (or by wrapping it), add a simple “windowing” step:
+- • If the total token/character count of the `messages` list exceeds a configured threshold, drop the oldest messages until you’re under the limit
+- • Expose a `MAX_CONTEXT_TOKENS` (or `MAX_MESSAGES`) constant in a config file so you can tweak it later
+- Each of these can be handled by a single “apply_task(…)” call and will immediately (1) automate seed removal, (2) keep pending code snapshots clean, and (3) ensure your LLM never chokes on an insanely large context window

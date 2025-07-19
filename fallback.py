@@ -62,18 +62,32 @@ def _is_ignored(path: Path, root: Path, ignore_patterns: list[str]) -> bool:
 
 
 def read_codebase(root: Path) -> dict[str, str]:
-    """Return a dict mapping relative paths to file contents, respecting .gitignore."""
+    """Return a dict mapping relative paths to file contents, respecting .gitignore
+    and skipping large/unwanted files to keep context size manageable."""
     files: dict[str, str] = {}
     ignore_patterns = _read_gitignore(root)
-    for path in root.rglob("*"):
+    skip_dirs = {'.venv', 'venv', '__pycache__', 'generated_backups'}
+    max_per_file = 3000  # chars
+    total_chars = 0
+    max_total = 100_000
+    for path in root.rglob('*'):
         if path.is_dir() or _is_ignored(path, root, ignore_patterns):
             continue
-        if path.suffix in CODE_EXTENSIONS and path.is_file():
-            try:
-                files[str(path.relative_to(root))] = path.read_text()
-            except UnicodeDecodeError:
-                # Skip binary or non‑UTF8 files
-                continue
+        if skip_dirs.intersection(path.parts):
+            continue
+        if path.suffix not in CODE_EXTENSIONS or not path.is_file():
+            continue
+        try:
+            content = path.read_text()
+        except UnicodeDecodeError:
+            continue
+        if len(content) > max_per_file:
+            continue
+        if total_chars + len(content) > max_total:
+            break
+        rel = str(path.relative_to(root))
+        files[rel] = content
+        total_chars += len(content)
     return files
 
 def agent_step(root: Path, model: str = "o3") -> None:
