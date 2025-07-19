@@ -51,3 +51,6 @@ SyntaxError: from __future__ imports must occur at the beginning of the file
 2025-07-19T11:37:29.898394 [INFO] [INFO] httpx - INFO - HTTP Request: POST https://sweden-central-1.openai.azure.com/openai/deployments/o4-mini/chat/completions?api-version=2025-03-01-preview "HTTP/1.1 200 OK"
 2025-07-19T11:37:43.219419 [INFO] [INFO] httpx - INFO - HTTP Request: POST https://sweden-central-1.openai.azure.com/openai/deployments/o4-mini/chat/completions?api-version=2025-03-01-preview "HTTP/1.1 200 OK"
 2025-07-19T11:38:07.609055 [INFO] [INFO] httpx - INFO - HTTP Request: POST https://sweden-central-1.openai.azure.com/openai/deployments/o3-ver1/chat/completions?api-version=2025-03-01-preview "HTTP/1.1 200 OK"
+2025-07-19T11:41:03.305043 [INFO] [INFO] httpx - INFO - HTTP Request: POST https://sweden-central-1.openai.azure.com/openai/deployments/o4-mini/chat/completions?api-version=2025-03-01-preview "HTTP/1.1 200 OK"
+2025-07-19T11:41:24.354695 [INFO] [INFO] httpx - INFO - HTTP Request: POST https://sweden-central-1.openai.azure.com/openai/deployments/o4-mini/chat/completions?api-version=2025-03-01-preview "HTTP/1.1 200 OK"
+2025-07-19T11:41:55.261159 [INFO] [INFO] httpx - INFO - HTTP Request: POST https://sweden-central-1.openai.azure.com/openai/deployments/o3-ver1/chat/completions?api-version=2025-03-01-preview "HTTP/1.1 200 OK"

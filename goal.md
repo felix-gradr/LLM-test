@@ -11,6 +11,10 @@ There might also be a "current sub-goal", which is written by the human. It coul
 
 ### Current Sub-goal
 Empower yourself, set up things in the following order:
+- TOP PRIORITY: The system must be safer. Running root should never fail, a better approach is something like this:
+  - root.py calls on other modules, so for example it could start by calling advanced agent orchestration, and if that fails, log the reason and fall back to a singular agent that is tasked with fixing it. Every time root.py fails, that means a human has to do manual work, which is NOT good.
+
+
 - The system still needs better error logging and error detection, we got logs such as these:
 "[TaskRouter] Multi-agent pipeline failed with PlanningAgent missing. Reverting to single-agent mode.", but they are never saved, so the agents never get a chance to fix them.
 
