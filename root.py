@@ -13,6 +13,29 @@ from __future__ import annotations
 import os
 from pathlib import Path
 from datetime import datetime, timezone
+
+def _update_iteration_report() -> None:
+    """Append a human-readable summary of the latest plan to iteration_report.md.
+
+    This is a lightweight form of change history that helps humans trace
+    progress across iterations without digging into progress.log.
+    """
+    report = Path(__file__).parent / "iteration_report.md"
+    plan_file = Path(__file__).parent / "latest_plan.json"
+    ts = datetime.now(timezone.utc).isoformat()
+    try:
+        import json as _json
+        tasks = _json.loads(plan_file.read_text(encoding="utf-8")) if plan_file.is_file() else []
+    except Exception:
+        tasks = []
+    with report.open("a", encoding="utf-8") as fp:
+        fp.write(f"\n### {ts}\n")
+        if tasks:
+            for t in tasks:
+                fp.write(f"- {t}\n")
+        else:
+            fp.write("- (no plan for this iteration)\n")
+
 from importlib import import_module
 from types import ModuleType
 from typing import Optional
@@ -71,6 +94,7 @@ def main() -> None:
 
     # Always ensure some progress is logged
     _log_progress("root")
+    _update_iteration_report()
 
 
 if __name__ == "__main__":
