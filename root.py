@@ -6,6 +6,45 @@ from dotenv import load_dotenv
 from datetime import datetime, timezone
 from pathlib import Path
 
+# ---------------------------------------------------------------------- #
+#  Code-safety helpers (auto-inserted by SelfCoder)
+# ---------------------------------------------------------------------- #
+from typing import Dict
+
+def _snapshot_py_files(root: Path) -> Dict[str, str]:
+    """Return a mapping of relative .py paths to their source code."""
+    snap: Dict[str, str] = {}
+    for p in root.rglob("*.py"):
+        try:
+            snap[str(p.relative_to(root))] = p.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+    return snap
+
+def _restore_snapshot(root: Path, snap: Dict[str, str]) -> None:
+    """Restore files from a snapshot, deleting any new files."""
+    existing_paths = {str(p.relative_to(root)) for p in root.rglob("*.py")}
+    snap_paths = set(snap)
+    # Restore or overwrite files that existed in the snapshot
+    for rel, src in snap.items():
+        (root / rel).write_text(src, encoding="utf-8")
+    # Remove new files created after the snapshot
+    for rel in existing_paths - snap_paths:
+        (root / rel).unlink(missing_ok=True)
+
+def _validate_codebase(root: Path) -> bool:
+    """Attempt to compile every .py file. Return True if all compile."""
+    import builtins
+    for p in root.rglob("*.py"):
+        try:
+            source = p.read_text(encoding="utf-8")
+            compile(source, str(p), "exec")
+        except Exception as e:
+            print(f"[SAFETY] Compilation failed for {p}: {e}")
+            return False
+    return True
+
+
 from openai import AzureOpenAI
 
 load_dotenv(override=True)
@@ -107,7 +146,19 @@ def agent_step(root: Path, model: str = "o3") -> None:
     reply = response.choices[0].message.content.strip()
     
     try:
-        exec(reply, globals())
+
+# === SAFETY EXECUTION WRAPPER ===
+            _pre_snapshot = _snapshot_py_files(root)
+            try:
+                exec(reply, globals())
+            except Exception as e:
+                print(f"[WARN] Error executing code: {e}")
+                _restore_snapshot(root, _pre_snapshot)
+            else:
+                if not _validate_codebase(root):
+                    print("[WARN] Validation failed, rolling back changes.")
+                    _restore_snapshot(root, _pre_snapshot)
+
     except Exception as e:
         print(f"[WARN] Error executing code: {e}")
 

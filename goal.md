@@ -11,8 +11,8 @@ There might also be a "current sub-goal", which is written by the human. It coul
 
 ### Current Sub-goal
 Empower yourself, set up things in the following order:
-- 1. Memory and support for lenghtier planning.
-- 2. Create a more efficient way of editing files (so you can edit a certain section without having to re-write the entire file out again)
+- 1. Safeguard edits, ensuring an edit does not break the entire system.
+- 2. Leverage chained LLM calls to optimize context and perform function calls. An example could be lighter weight models (o4-mini) querying the codebase (as it grows larger) or writing patches. Outsource "easy" job to o4-mini and keep heavy reasoning tasks to o3
 
 ### What Can you change
 This repository is you, see it as your brain.
