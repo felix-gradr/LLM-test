@@ -20,22 +20,6 @@ SYSTEM_PROMPT = (Path(__file__).parent / "system_prompt.txt").read_text(encoding
 # Load goal from goal.md
 GOAL = (Path(__file__).parent / "goal.md").read_text(encoding="utf-8").strip()
 
-def _handle_root_error(e: Exception, project_root: Path) -> None:
-    """Log the exception and ensure the agent can still continue safely."""
-    import traceback, json, datetime, sys
-    log_entry = {
-        "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
-        "error": str(e),
-        "traceback": traceback.format_exc(),
-    }
-    try:
-        with (project_root / "root_error.log").open("a", encoding="utf-8") as f:
-            json.dump(log_entry, f)
-            f.write("\n")
-    except Exception:
-        pass  # Even logging must not crash anything
-    print("[root.py] Fallback engaged due to unhandled error:", e, file=sys.stderr)
-
 
 def _read_gitignore(root: Path) -> list[str]:
     """Read and parse .gitignore rules from the root directory."""
@@ -135,10 +119,4 @@ def main():
 
 
 if __name__ == "__main__":
-    from pathlib import Path as _Path
-    import traceback as _traceback, json as _json, datetime as _datetime, sys as _sys
-    _project_root = _Path(__file__).parent.resolve()
-    try:
-        main()
-    except Exception as _e:
-        _handle_root_error(_e, _project_root)
+    main()
