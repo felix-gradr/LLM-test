@@ -11,7 +11,7 @@ There might also be a "current sub-goal", which is written by the human. It coul
 
 ### Current Sub-goal
 Empower yourself, set up things in the following order:
-- 1. Fix the memory system, right now nothing is ever saved.
+- 1. Create a plan.md that the agent can read to immediately know what to do next.
 - 2. Improve the system prompt
 - 3. Divide the repo into smaller parts. Smaller files makes writes easier.
 - 4. Leverage chained LLM calls to build up context and perform calls. An example could be lighter weight models (o4-mini) querying the codebase (as it grows larger) or writing patches. Outsource "easy" job to o4-mini and keep heavy reasoning tasks to o3
