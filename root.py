@@ -12,3 +12,8 @@ def main():
 
 if __name__ == "__main__":
     main()
+    #remove seed.txt
+    from pathlib import Path
+    seed_file = Path(__file__).parent / "seed.txt"
+    if seed_file.is_file():
+        seed_file.unlink()

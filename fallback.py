@@ -76,7 +76,6 @@ def read_codebase(root: Path) -> dict[str, str]:
                 continue
     return files
 
-
 def agent_step(root: Path, model: str = "o3") -> None:
     """Run one reasoning / coding cycle."""
     snapshot = read_codebase(root)
