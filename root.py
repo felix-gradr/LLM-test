@@ -1,4 +1,5 @@
 from __future__ import annotations
+import error_logger
 import sys, traceback
 import memory as _memory_mod  # lazy import to avoid cycles
 
@@ -52,6 +53,7 @@ def _validate_codebase(root: Path) -> bool:
             source = p.read_text(encoding="utf-8")
             compile(source, str(p), "exec")
         except Exception as e:
+            error_logger.log_error(e, context="root.py top-level handler")
             print(f"[SAFETY] Compilation failed for {p}: {e}")
             return False
     return True
