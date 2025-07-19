@@ -1,0 +1,7 @@
+2025-07-19T12:36:48.457147+00:00 | init | Log file created\n---\n2025-07-19T12:40:00.632366+00:00 | root.py main() failure | NotImplementedError('Main agent not implemented yet')
+Traceback (most recent call last):
+  File "F:\repos\LLM-test\root.py", line 15, in main
+    raise NotImplementedError("Main agent not implemented yet")
+NotImplementedError: Main agent not implemented yet
+
+---

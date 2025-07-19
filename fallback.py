@@ -6,6 +6,7 @@ import os
 from dotenv import load_dotenv
 from datetime import datetime, timezone
 from pathlib import Path
+from error_logger import log_error
 
 from openai import AzureOpenAI
 
