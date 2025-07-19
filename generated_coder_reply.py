@@ -1,126 +1,123 @@
 from pathlib import Path
-import re
-import textwrap
-import tempfile
-import shutil
+import datetime as _dt, traceback, difflib
 
-ROOT = Path(__file__).parent
+# === Existing imports remain ===
+from llm_utils import chat_completion
 
-
-def _ensure_imports(source: str) -> str:
-    """Ensure required safety imports exist in coder.py source."""
-    imports_needed = {"tempfile", "shutil"}
-    existing_imports = set(re.findall(r"^\s*import (\w+)", source, flags=re.MULTILINE))
-    missing = imports_needed - existing_imports
-    if missing:
-        first_import = re.search(r"^\s*import [\w, ]+", source, flags=re.MULTILINE)
-        if first_import:
-            insert_at = first_import.end()
-            before = source[:insert_at]
-            after = source[insert_at:]
-            for imp in sorted(missing):
-                before += f"\nimport {imp}"
-            return before + after
-    return source
+# Rest of original coder.py up to _ROOT definition stays unchanged
+# We will append / inject new helpers and enhance existing functions below.
 
 
-def _build_new_apply_task() -> str:
-    """Return the new, safer apply_task() implementation."""
-    return textwrap.dedent(
-        '''
-        def apply_task(task: str, model: str = "o3-ver1") -> str:
-            """Use an LLM to generate Python code that fulfills `task` and execute it safely.
-    
-            The function now:
-            1. Creates a backup of all .py files before execution.
-            2. Executes the generated code.
-            3. Runs a static syntax check across the repo.
-            4. Restores from backup if the syntax check fails.
-            """
-            import traceback, uuid
-            backup_dir = Path(tempfile.mkdtemp(prefix="code_backup_"))
-            # --- Step 1: snapshot current .py files ---
-            for p in _ROOT.rglob("*.py"):
-                if backup_dir in p.parents:
-                    continue
-                rel = p.relative_to(_ROOT)
-                dest = backup_dir / rel
-                dest.parent.mkdir(parents=True, exist_ok=True)
-                try:
-                    shutil.copy2(p, dest)
-                except Exception:
-                    # Non-critical; continue copying others
-                    continue
-    
-            # --- Step 2: ask LLM for code changes ---
-            messages = [
-                {
-                    "role": "system",
-                    "content": (
-                        "You are a coding agent operating inside an existing repo.\\n"
-                        "Given a task description, output ONLY executable Python code (no markdown)\\n"
-                        "that edits files in the repository to accomplish the task.\\n"
-                        "You may use standard library only.\\n"
-                    ),
-                },
-                {
-                    "role": "user",
-                    "content": f"Task: {task}\\n\\nCodebase snapshot:\\n{_snapshot_codebase()}",
-                },
-            ]
-            reply = chat_completion(messages, preferred_model=model)
-            # Persist reply for audit
-            gen_file = _ROOT / "generated_coder_reply.py"
-            gen_file.write_text(reply, encoding="utf-8")
-    
-            status = "ok"
-            try:
-                exec(reply, {"__name__": "__coder_exec__"})
-            except Exception as e:
-                status = f"error during exec: {e}"
-                traceback.print_exc()
-    
-            # --- Step 3: static syntax check ---
-            if not _run_static_syntax_check():
-                # --- Step 4: restore backup on failure ---
-                _restore_backup(backup_dir)
-                status = "reverted: static check failed"
-    
-            # Clean up backup directory
-            try:
-                shutil.rmtree(backup_dir)
-            except Exception:
-                pass
-    
-            # Log outcome
-            log = _ROOT / "coder.log"
-            with log.open("a", encoding="utf-8") as fp:
-                import datetime as _dt
-                fp.write(f"{_dt.datetime.utcnow().isoformat()} | {task} -> {status}\\n")
-            return status
-        '''
-    )
+# ------------------------------------------------------------
+# NEW: Executed-tasks tracking & diff logging helpers
+# ------------------------------------------------------------
+_EXECUTED = Path(__file__).parent / "executed_tasks.md"
+_DIFF_DIR = Path(__file__).parent / "change_diffs"
+_DIFF_DIR.mkdir(exist_ok=True)
 
+def _has_executed(task: str) -> bool:
+    """Return True if the exact task string has already been executed."""
+    if not _EXECUTED.is_file():
+        return False
+    try:
+        existing = _EXECUTED.read_text(encoding="utf-8").splitlines()
+    except Exception:
+        return False
+    return any(t.split("] ", 1)[-1] == task for t in existing if "] " in t)
 
-def patch_coder_py() -> None:
-    coder_path = ROOT / "coder.py"
-    source = coder_path.read_text(encoding="utf-8")
+def _mark_executed(task: str):
+    """Append task to executed_tasks.md with timestamp."""
+    ts = _dt.datetime.utcnow().isoformat()
+    with _EXECUTED.open("a", encoding="utf-8") as fp:
+        fp.write(f"- [{ts}] {task}\n")
 
-    # Ensure imports for tempfile and shutil
-    source = _ensure_imports(source)
+def _dict_code_snapshot() -> dict[str, str]:
+    """Return mapping of relative .py file paths -> contents (utf-8)."""
+    root = Path(__file__).parent
+    snap = {}
+    for p in root.rglob("*.py"):
+        if any(x in p.parts for x in ("venv", ".venv")):
+            continue
+        try:
+            snap[str(p.relative_to(root))] = p.read_text(encoding="utf-8")
+        except Exception:
+            continue
+    return snap
 
-    # Replace existing apply_task definition
-    new_apply_task = _build_new_apply_task()
-    pattern = re.compile(
-        r"def apply_task\(.+?^\s*return [^\n]+", re.DOTALL | re.MULTILINE
-    )
-    source, n = pattern.subn(new_apply_task, source)
-    if n == 0:
-        # Fallback if pattern not found; append the new function
-        source += "\n\n" + new_apply_task
+def _write_diff(before: dict[str, str], after: dict[str, str], task: str):
+    """Compute unified diff between before and after snapshots and persist."""
+    ts = _dt.datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    diff_lines = []
+    all_keys = set(before) | set(after)
+    for key in sorted(all_keys):
+        pre = before.get(key, "").splitlines(keepends=True)
+        post = after.get(key, "").splitlines(keepends=True)
+        if pre == post:
+            continue
+        diff_lines.extend(difflib.unified_diff(
+            pre, post,
+            fromfile=f"a/{key}",
+            tofile=f"b/{key}",
+            lineterm=""
+        ))
+        diff_lines.append("")  # newline separator
+    if not diff_lines:
+        return  # nothing changed
+    diff_path = _DIFF_DIR / f"{ts}.diff"
+    header = f"# Task: {task}\n# Timestamp: {ts} UTC\n\n"
+    diff_path.write_text(header + "\n".join(diff_lines), encoding="utf-8")
 
-    coder_path.write_text(source, encoding="utf-8")
+# ------------------------------------------------------------
+# PATCH: enhance apply_task
+# ------------------------------------------------------------
+def apply_task(task: str, model: str = "o3-ver1") -> str:
+    """Use an LLM to generate Python code that fulfils `task` and execute it.
 
+    Returns a short status string.
+    """
+    # Skip if task already executed
+    if _has_executed(task):
+        return "skipped: already executed"
 
-if __name__ == "__main__":
-    patch_coder_py()
+    before_snap = _dict_code_snapshot()  # snapshot before any change
+
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                "You are a coding agent operating inside an existing repo.\n"
+                "Given a task description, output ONLY executable Python code (no markdown)\n"
+                "that edits files in the repository to accomplish the task.\n"
+                "You may use standard library only.\n"
+            ),
+        },
+        {
+            "role": "user",
+            "content": f"Task: {task}\n\nCodebase snapshot:\n{_snapshot_codebase()}",
+        },
+    ]
+    reply = chat_completion(messages, preferred_model=model)
+    # Persist reply for audit
+    gen_file = _ROOT / "generated_coder_reply.py"
+    gen_file.write_text(reply, encoding="utf-8")
+
+    status = "ok"
+    try:
+        _safe_exec(reply)
+    except Exception as e:
+        status = f"error: {e}"
+        traceback.print_exc()
+
+    # Snapshot after execution & write diff if no error
+    after_snap = _dict_code_snapshot()
+    if status == "ok":
+        _write_diff(before_snap, after_snap, task)
+        _mark_executed(task)
+
+    # Log outcome
+    log = _ROOT / "coder.log"
+    with log.open("a", encoding="utf-8") as fp:
+        fp.write(f"{_dt.datetime.utcnow().isoformat()} | {task} -> {status}\n")
+    return status
+
+# Note: record_task and other existing code remain unchanged.

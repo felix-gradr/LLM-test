@@ -190,3 +190,19 @@
 - “Here’s the diff you just applied and the static/lint feedback—please suggest 2–3 immediate refactorings or improvements to increase code robustness.”
 - • Write those suggestions to a new file `self_improvement.md`
 - Impact: Creates a live feedback loop so the agent continually critiques and improves its own output
+
+### 2025-07-19T15:26:51.094455+00:00
+- Here are three bite-sized, high-impact tasks that will kick-start your long-term strategy and enforce “no repeats” by logging exactly what changed each run:
+- Add a change-logger module
+- Create a new file (e.g. `change_logger.py`) that, given a “before” and “after” snapshot of all `.py` files, runs a `difflib.unified_diff` and appends a concise summary (filename + diff snippet) to `change_log.md`
+- This will let every iteration leave a human‐readable summary of “what actually changed.”
+- Implement an iteration tracker
+- Introduce a persistent counter and metadata store (e.g. `iteration_state.json`). On each run, increment the counter, record timestamp, the list of tasks applied, and pull in that diff snippet from `change_log.md`
+- Expose simple APIs in a new `iteration_tracker.py` module for “get_current_iteration()” and “record_iteration(summary_dict).”
+- Wire everything into the main runner
+- Update your entrypoint (`root.py` or `seed.py`) so that at the end of every run it:
+- a) takes a fresh backup of the codebase before making changes
+- b) calls the coder to fulfill any new tasks
+- c) invokes the change-logger to generate the diff snippet
+- d) calls the iteration tracker to record that iteration’s metadata
+- This ensures every run automatically produces both a changelog snippet and a record, preventing silent repeats

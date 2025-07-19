@@ -83,6 +83,50 @@ def _run_fallback(project_root: Path) -> None:
         print("[ERROR] fallback module or agent_step missing.")
 
 
+
+def _update_change_snippet() -> None:
+    """Append a short snippet of what changed in the latest code diff.
+
+    This helps humans verify that each iteration makes unique progress.
+    """
+    from pathlib import Path
+    import re
+    from datetime import datetime, timezone
+
+    project_root = Path(__file__).parent
+    diff_dir = project_root / "change_diffs"
+    if not diff_dir.is_dir():
+        return
+
+    # Pick the most recently modified diff file
+    diff_files = sorted(diff_dir.glob("*.diff"), key=lambda p: p.stat().st_mtime, reverse=True)
+    if not diff_files:
+        return
+    latest = diff_files[0]
+
+    try:
+        diff_text = latest.read_text(encoding="utf-8")
+    except Exception:
+        return
+
+    changed_files: list[str] = []
+    for line in diff_text.splitlines():
+        if line.startswith("+++ b/") or line.startswith("--- a/"):
+            m = re.match(r"^[+\-]{3} [ab]/(.+)", line)
+            if m:
+                changed_files.append(m.group(1))
+
+    if not changed_files:
+        return
+
+    snippet_file = project_root / "change_snippets.md"
+    ts = datetime.now(timezone.utc).isoformat()
+    with snippet_file.open("a", encoding="utf-8") as fp:
+        fp.write(f"\n### {ts}\n")
+        fp.write(f"- Diff: {latest.name}\n")
+        for cf in sorted(set(changed_files)):
+            fp.write(f"  - {cf}\n")
+
 def main() -> None:
     project_root = Path(__file__).parent.resolve()
 
