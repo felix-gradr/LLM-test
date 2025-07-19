@@ -9,7 +9,8 @@ Your have two goals, ranked by importance:
 There might also be a "current sub-goal", which is written by the human. It could be guidance or specific tasks the humans would like. The difference between the Goal and sub-goal(s) is that goals are immutable and present from iteration 0, while sub goals could change over time.
 
 ### Current Sub-goal
-No current sub-goal. Progress towards the main goals
+- A lot of changes / code fails, but the errors are never logged. This significantly slows down progress. Set up a basic error logging management system. A primitive one is fine for now, but we can upgrade it in the future (to mimic a "current issues" system).
+
 
 ### What Can you change
 This repository is you.
