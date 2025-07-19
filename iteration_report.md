@@ -169,3 +169,24 @@
 - • That writes the traceback to `fallback.log` with a timestamp
 - • And appends a generic “Recover from error” task to `pending_tasks.md` so the next run still has something to do
 - These three tasks will give us a loop that (a) never crashes without registering recovery work, (b) actually plans and executes something each iteration, and (c) ensures intelligent LLM-based forward motion. Once this is in place, we can iterate on making the planner smarter and the fallback more self-healing
+
+### 2025-07-19T15:22:36.817047+00:00
+- Here are three small, high-leverage tasks you can tackle next to drive the system forward:
+- “Task-Planner” Module
+- • Create a new Python module (e.g. `planner.py`) that:
+- – Reads in `goal.md` and a short snapshot of the current codebase
+- – Calls the LLM (using your existing `chat_completion` helper) to generate 3–5 specific, prioritized sub-tasks that will advance the PRIMARY goal (“never get stuck”) and SECONDARY goal (“self-improvement”)
+- – Appends those tasks to `pending_tasks.md` in timestamped form
+- Impact: Automates the generation of actionable next steps so the agent always has something intelligent to work on
+- Robust Fallback Invocation in `root.py`
+- • Modify your `root.py` entrypoint (or create it if missing) so that:
+- – All agent actions (planning, coding, etc.) are wrapped in a try/except
+- – On any uncaught exception or unhelpful LLM outcome, it automatically shells out to `fallback.py` to recover
+- – Logs which errors triggered the fallback and what recovery steps were taken
+- Impact: Guarantees the system never fully crashes or stalls, satisfying the “always make progress” requirement
+- Self-Improvement Feedback Loop
+- • After each code change (i.e., immediately after running `apply_task`), run a quick static analysis pass (e.g., via `compileall` plus a simple linter stub)
+- • Feed any warnings/errors back into the LLM with a prompt like:
+- “Here’s the diff you just applied and the static/lint feedback—please suggest 2–3 immediate refactorings or improvements to increase code robustness.”
+- • Write those suggestions to a new file `self_improvement.md`
+- Impact: Creates a live feedback loop so the agent continually critiques and improves its own output

@@ -16,6 +16,16 @@ def _run_static_syntax_check() -> bool:
     except Exception:
         return False
 
+# === Safe EXEC helper (auto-inserted) ===
+def _safe_exec(code: str):
+    """Execute generated code with a predefined __file__ to avoid NameErrors."""
+    env = {
+        "__name__": "__coder_exec__",
+        "__file__": str(_ROOT / "generated_exec.py"),
+    }
+    exec(code, env)
+
+
 def _restore_backup(backup_dir: Path) -> None:
     """Restore files from the given backup directory."""
     if not backup_dir or not backup_dir.exists():
@@ -77,7 +87,7 @@ def apply_task(task: str, model: str = "o3-ver1") -> str:
 
     status = "ok"
     try:
-        exec(reply, {"__name__": "__coder_exec__"})
+        _safe_exec(reply)
     except Exception as e:
         status = f"error: {e}"
         traceback.print_exc()
