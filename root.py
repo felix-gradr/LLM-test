@@ -1,4 +1,15 @@
 from __future__ import annotations
+import sys, traceback
+import memory as _memory_mod  # lazy import to avoid cycles
+
+def _log_excepthook(exc_type, exc_value, exc_tb):
+    """Universal fallback logging for any uncaught exception."""
+    _memory_mod.log_error(''.join(traceback.format_exception(exc_type, exc_value, exc_tb)))
+    sys.__excepthook__(exc_type, exc_value, exc_tb)
+
+sys.excepthook = _log_excepthook
+
+
 
 import memory
 from test_runner import run_tests

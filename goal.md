@@ -12,6 +12,12 @@ There might also be a "current sub-goal", which is written by the human. It coul
 ### Current Sub-goal
 Empower yourself, set up things in the following order:
 - 1. Safeguard the repository. By far the largest current issue is your changes breaking fundamental tools, which requires a human to manually fix. I suggeston creating a set of basic "fallback-editor" tools that you can use if the more intricate editing system is broken.
+- 2. Implement better error logging, for example we got this:
+OK
+Inserted safe-import guard into root.py
+[SAFETY] Compilation failed for F:\repos\LLM-test\root.py: from __future__ imports must occur at the beginning of the file (root.py, line 16)
+[SAFETY] Compilation failed after patch – rolling back.
+- The next iteration has no information about this error.
 
 Future tasks: (Do not focus on yet)
 - 2. Clean up and refactor the repository. Reduce average file size for faster and easier writes.
