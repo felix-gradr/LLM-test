@@ -45,7 +45,7 @@ Human work is far more expensive than LLM work, so keep human work as a last res
 It is up to you to decide how to communicate with the human.
 
 Available models are (ranked by power):
-- `o3-ver1`
-- `o4-mini`
+- `o3-ver1` (extremely capable)
+- `o4-mini` (still very capable but less so, faster and better at isolated tasks)
 
 LLM calls are free, so you are encouraged to leverage multiple LLM calls together and orchestrate a more sophisticated system of specialized LLM agents.

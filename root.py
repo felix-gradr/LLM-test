@@ -73,7 +73,9 @@ def _run_fallback(project_root: Path) -> None:
 def main() -> None:
     project_root = Path(__file__).parent.resolve()
 
-    try:    _run_main_agent()
+    try:
+        raise Exception ("Main agent is still under development, please use fallback agent. until main agent is more capable")
+        _run_main_agent()
     except Exception as exc:
         print(f"[WARN] main agent error: {{exc}}. Switching to fallback.")
         _run_fallback(project_root)
