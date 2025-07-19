@@ -3,6 +3,7 @@ import error_logger
 import sys, traceback
 import memory as _memory_mod  # lazy import to avoid cycles
 import safe_file_editor  # Auto-injected safety shim
+import logging_handler  # Auto-added: persist logs to memory
 
 def _log_excepthook(exc_type, exc_value, exc_tb):
     """Universal fallback logging for any uncaught exception."""
