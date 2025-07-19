@@ -13,6 +13,7 @@ There might also be a "current sub-goal", which is written by the human. It coul
 Empower yourself, set up things in the following order:
 - 1. Leverage chained LLM calls to optimize context and perform function calls. An example could be lighter weight models (o4-mini) querying the codebase (as it grows larger) or writing patches. Outsource "easy" job to o4-mini and keep heavy reasoning tasks to o3
 - 2. Significatly improve the system prompt, create a system prompt directory that has a .txt file for each agent.
+- 3. Save errors to a file, such that future agents can try to resolve them. Agent should remove fixed errors from the file
 
 Future tasks: (Do not focus on yet)
 - 3. Fix memory module, memory.jsonl is never saved to properly.

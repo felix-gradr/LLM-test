@@ -118,57 +118,56 @@ def read_codebase(root: Path) -> dict[str, str]:
     return files
 
 
-def agent_step(root: Path, model: str = "o3") -> None:
-    """Run one reasoning / coding cycle."""
-    # Run baseline tests before making any changes
+def agent_step(root: Path) -> None:
+    """
+    Run one full reasoning/coding cycle using the orchestrator.
+
+    Pipeline:
+        1. Run baseline tests – abort early if red.
+        2. Snapshot current codebase for safety rollback.
+        3. Ask TaskRouter (Light+Heavy LLM chain) for a code-patch.
+        4. Exec the patch under a safety snapshot.
+        5. Validate compilation & post-patch tests; rollback on failure.
+    """
+    # 1. Baseline tests
     if not run_tests(verbosity=1):
-        print("[TESTS] Baseline tests failing. Aborting agent step.")
+        print("[TESTS] Baseline tests failing – aborting iteration.")
         return
+
+    # 2. Snapshot codebase as {rel_path: source}
     snapshot = read_codebase(root)
-    # Truncate to avoid blowing past context limits
-    joined = "\n".join(f"## {p}\n{c}" for p, c in snapshot.items())[:100000]
 
-    user_prompt = (
-        f"Today is {datetime.now(timezone.utc).date()}.\n"
-        f"Here is the current codebase (truncated):\n{joined}"
-    )
-
-    # Add GOAL to the system prompt
-    SYSTEM_PROMPT_WITH_GOAL = f"{SYSTEM_PROMPT}\n\n ================================== Current GOAL:\n{GOAL}"
-
-    client = AzureOpenAI(
-            api_key=os.getenv("AZURE_KEY"),
-            azure_endpoint=os.getenv("AZURE_ENDPOINT"),
-            api_version="2025-03-01-preview",
-        )
-
-    response = client.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT_WITH_GOAL},
-            {"role": "user", "content": user_prompt},
-        ],
-    )
-
-    reply = response.choices[0].message.content.strip()
-    
+    # 3. Get code-patch from hierarchical LLM agents
     try:
+        router = TaskRouter(snapshot, GOAL, SYSTEM_PROMPT)
+        patch_code = router.generate()
+    except Exception as exc:
+        print(f"[LLM] Failed to obtain patch: {exc}")
+        memory.log_error(exc, context="TaskRouter.generate()")
+        return
 
-# === SAFETY EXECUTION WRAPPER ===
-            _pre_snapshot = _snapshot_py_files(root)
-            try:
-                exec(reply, globals())
-            except Exception as e:
-                print(f"[WARN] Error executing code: {e}")
-                _restore_snapshot(root, _pre_snapshot)
-            else:
-                if not _validate_codebase(root):
-                    print("[WARN] Validation failed, rolling back changes.")
-                    _restore_snapshot(root, _pre_snapshot)
+    # 4. Safety wrapper around exec
+    _pre_snapshot = _snapshot_py_files(root)
+    try:
+        exec(patch_code, globals())
+    except Exception as exc:
+        print(f"[EXEC] Error while applying patch: {exc}")
+        memory.log_error(exc, context="exec(patch_code)")
+        _restore_snapshot(root, _pre_snapshot)
+        return
 
-    except Exception as e:
-        print(f"[WARN] Error executing code: {e}")
+    # 5. Validate compilation & tests post-patch
+    if not _validate_codebase(root):
+        print("[SAFETY] Compilation failed after patch – rolling back.")
+        _restore_snapshot(root, _pre_snapshot)
+        return
 
+    if not run_tests(verbosity=1):
+        print("[TESTS] Post-patch tests failing – rolling back.")
+        _restore_snapshot(root, _pre_snapshot)
+        return
+
+    print("[OK] Patch applied successfully and all tests green.")
 
 def main():
     project_root = Path(__file__).parent.resolve()
@@ -177,3 +176,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+from orchestrator import TaskRouter
