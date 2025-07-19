@@ -1,4 +1,3 @@
-
 """orchestrator.py
 High-level module that demonstrates *chained* LLM calls:
     • LightAgent  – cheap `o4-mini` summarisation & pattern-matching.
@@ -110,7 +109,7 @@ changes using pathlib.  DO NOT add any explanations or commentary.
         return response.strip()
 # ==================== End WorkerAgent definition ======================
 class TaskRouter:
-    """Simple façade combining Light & Heavy agents."""
+    """Simple facade combining Light & Heavy agents."""
 
     def __init__(self, snapshot: Dict[str, str], goal: str, _system_prompt: str) -> None:
         self.snapshot = snapshot
@@ -201,7 +200,7 @@ class TaskRouter:
 # ================= SelfCoder multi-agent patch =================
 from types import MethodType
 
-def _multi_agent_generate(self, codebase: str) -> str:  # noqa: C901
+def _multi_agent_generate(self) -> str:  # noqa: C901
     """New TaskRouter.generate implementation.
 
     Pipeline:
@@ -216,7 +215,7 @@ def _multi_agent_generate(self, codebase: str) -> str:  # noqa: C901
         # 0. High-level summary (LightAgent)
         # ----------------------------------------------------------
         light = LightAgent()
-        summary = light.summarize(codebase)
+        summary = light.summarise_codebase(self.snapshot)
 
         # ----------------------------------------------------------
         # 1. Planning phase
@@ -257,17 +256,19 @@ def _multi_agent_generate(self, codebase: str) -> str:  # noqa: C901
         # ----------------------------------------------------------
         first_task = assignments[0]
         worker = WorkerAgent()
-        return worker.work_on_task(first_task, summary, codebase)
+        # Combine snapshot into a single string for the worker
+        full_code = "\n".join(f"## {p}\n{c}" for p, c in self.snapshot.items())
+        return worker.work_on_task(first_task, summary, full_code)
 
     except Exception as err:
         # Graceful degradation to the original HeavyAgent pipeline
-        print(f"[TaskRouter] Multi-agent pipeline failed � {{err}}. "
+        print(f"[TaskRouter] Multi-agent pipeline failed with {err}. "
               "Reverting to single-agent mode.")
         light = LightAgent()
-        summary = light.summarize(codebase)
+        summary = light.summarise_codebase(self.snapshot)
         heavy = HeavyAgent()
-        return heavy.propose_patch(summary, codebase)
+        return heavy.propose_patch(summary, self.goal)
 
 # Attach the new method to TaskRouter
-TaskRouter.generate = MethodType(_multi_agent_generate, TaskRouter)
+TaskRouter.generate = _multi_agent_generate
 # ================= End SelfCoder patch =================

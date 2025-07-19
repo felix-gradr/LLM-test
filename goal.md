@@ -17,11 +17,12 @@ Empower yourself, set up things in the following order:
  - Workers (o4-mini)
  - More agents can be created in the future, but that should be figured out by the planning agent.
 You will have to write relatively extensive prompts for these (Perhaps a prompting agent would be useful down the line!)
+- 2. The project still needs more protection. The goal is, if more advanced modules fail, we should fall back to really simple methods such that the program never crashes entirely. That way, we can save the error logs of the more advanced failure, and the simpler tools can hopefully repair them without human intervention.
 
 Future tasks: (Do not focus on yet)
-- 2. Clean up and refactor the repository. Reduce average file size for faster and easier writes.
-- 3. Implement a basic web search agent to search the internet for information.
-- 4. Keep a log of total model costs
+- 3. Clean up and refactor the repository. Reduce average file size for faster and easier writes.
+- 4. Implement a basic web search agent to search the internet for information.
+- 5. Keep a log of total model costs
 
 ### What Can you change
 This repository is you, see it as your brain.

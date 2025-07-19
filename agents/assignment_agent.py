@@ -30,7 +30,7 @@ def generate(plan: dict) -> List[Dict[str, str]]:
 
     Craft the `assignments` JSON list now.
     """
-    response = ask_o3(SYSTEM_PROMPT, user_prompt)
+    response = ask_o3(user_prompt, system_prompt=SYSTEM_PROMPT)
     try:
         return json.loads(response)
     except json.JSONDecodeError:

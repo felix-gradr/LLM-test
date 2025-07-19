@@ -91,7 +91,9 @@ def ask_o4(user_prompt: str, *, temperature: float = 0.2) -> str:
     return call_chat(messages, model="o4-mini", temperature=temperature)
 
 
-def ask_o3(user_prompt: str, *, temperature: float = 0.0) -> str:
+def ask_o3(user_prompt: str, *, temperature: float = 0.0, system_prompt: str = None) -> str:
     """Send *user_prompt* to the heavyweight `o3-ver1` model."""
+    if system_prompt:
+        _SYS_O3["content"] = system_prompt  # Override default system prompt if provided (SHOULD ALWAYS BE PROVIDED)
     messages = [_SYS_O3, {"role": "user", "content": user_prompt}]
     return call_chat(messages, model="o3-ver1", temperature=temperature)
