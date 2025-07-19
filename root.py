@@ -155,7 +155,7 @@ def agent_step(root: Path, model: str = "o3-ver1") -> None:
 
     # Snapshot current code for context
     snapshot = read_codebase(root)
-    joined = "\n".join(f"## {p}\n{c}" for p, c in snapshot.items())[:12000]
+    joined = "\n".join(f"## {p}\n{c}" for p, c in snapshot.items())[:100000]
 
     # Add timestamp, memory & codebase to user prompt
     memory_summary = _summarise_memory()
