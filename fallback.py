@@ -72,8 +72,6 @@ def read_codebase(root: Path) -> dict[str, str]:
             try:
                 files[str(path.relative_to(root))] = path.read_text()
             except UnicodeDecodeError:
-            # Skip binary-ish files
-            continue
                 # Skip binary or non‑UTF8 files
                 continue
     return files
@@ -142,7 +140,3 @@ def agent_step(root, model: str = "o3-ver1") -> None:  # type: ignore[override]
         exec(reply, globals())
     except Exception as e:
         print(f"[WARN] Error executing generated code: {e}")
-
-if __name__ == "__main__":
-    root = Path(__file__).parent
-    print(f"Indexed {len(read_codebase(root))} files from {root}")
