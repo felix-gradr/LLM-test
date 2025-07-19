@@ -1,39 +1,35 @@
-"""Entry-point for SelfCoder.
 
-On failure, falls back to fallback.agent_step, but now records
-all errors using error_logger.log_error so future iterations
-can inspect them.
+"""Entry-point for SelfCoder orchestration.
+
+Runs planner and executor agents every iteration.
+Falls back to fallback.agent_step on any failure, with full error logging.
 """
 from pathlib import Path
 from error_logger import log_error
-from datetime import datetime, timezone
 
 def main() -> None:
+    project_root = Path(__file__).parent.resolve()
     try:
-        ### Main agent logic placeholder ###
-        # Currently unimplemented; deliberately raise to trigger fallback
-        raise NotImplementedError("Main agent not implemented yet")
+        from agents import planner_agent, executor_agent
+        planner_agent.run(project_root)
+        executor_agent.run(project_root)
     except Exception as exc:
-        # Log error details before invoking fallback agent
-        log_error("root.py main() failure", exc)
-        # Invoke fallback
+        # If anything goes wrong, log and trigger fallback
+        log_error("orchestrator main() failure", exc)
         try:
             from fallback import agent_step
-            project_root = Path(__file__).parent.resolve()
             agent_step(project_root, model="o3-ver1")
-        except Exception as fallback_exc:
-            # Even fallback failed; record this too
-            log_error("fallback.agent_step() failure", fallback_exc)
-            # Re-raise so that external runners notice hard failure
+        except Exception as fb_exc:
+            log_error("fallback after orchestrator failure", fb_exc)
             raise
 
-
-# Ensure the 'seed.txt' marker is removed after first run for clarity
+# Remove seed marker after first run
 seed_marker = Path(__file__).parent / "seed.txt"
 if seed_marker.exists():
     try:
         seed_marker.unlink()
     except Exception as e:
         log_error("root.py: failed to remove seed.txt", e)
+
 if __name__ == "__main__":
     main()
