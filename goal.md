@@ -10,9 +10,7 @@ Create a SAAS business that generates $1k MRR
 There might also be a "current sub-goal", which is written by the human. It could be guidance or specific tasks the humans would like. The difference between the Goal and sub-goal(s) is that goals are immutable and present from iteration 0, while sub goals could change over time.
 
 ### Current Sub-goal
-Empower yourself, set up things in the following order:
-- Protect root and set up a self-repair system. Write a really simple ai agent that can edit files, that we use as a fallback incase the more complicated system that we are building fails. Suggested workflow:
-[Attempt complicated agent process] -> (if fails) -> Show error to simpler, safe model (that we more or less never edit), that is tasked with fixing the issue. 
+- Create more safety, such that the iterations never get completely stuck. Log any errors, such that future iterations can fix them.
 
 ### What Can you change
 This repository is you, see it as your brain.
@@ -31,6 +29,8 @@ The only things you cannot change (you will be shut down if you do):
 - .env
 
 Except for this, you have no limitations. Feel free to add packages, more LLM calls, or even new programming languages
+
+**Important:** You are recommended to take extreme precaution when editing the fallback agent. The fallback agent's main purpose is to fix any issues such that the program never gets completely stuck.
 
 ### How the project is ran
 The human will run python -m root.py iteratively.
