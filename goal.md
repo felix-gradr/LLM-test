@@ -11,10 +11,8 @@ There might also be a "current sub-goal", which is written by the human. It coul
 
 ### Current Sub-goal
 Empower yourself, set up things in the following order:
-- 1. Protect root.py. root.py should NEVER fail, as that would require human intervention to fix. A suggestion is that root.py can always fall back to a simpler method (that we never edit), and that we log and save any error we encounter.
-
-Future sub-goals:
-- 2. Memory and support for lenghtier planning.
+- 1. Memory and support for lenghtier planning.
+- 2. Introduce testing and rollback to make sure patches does not break critical functionality
 - 3. Create a more efficient way of editing files (so you can edit a certain section without having to re-write the entire file out again)
 
 ### What Can you change

@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-from memory import Memory
 
 # ------------- SAFETY: EARLY BACKUP -------------
 _project_root = Path(__file__).resolve().parent
@@ -30,11 +29,6 @@ load_dotenv(override=True)
 CODE_EXTENSIONS = {".py", ".txt", ".md"}
 SYSTEM_PROMPT = (Path(__file__).parent / "system_prompt.txt").read_text(encoding="utf-8").strip()
 GOAL = (Path(__file__).parent / "goal.md").read_text(encoding="utf-8").strip()
-
-# ---------------- AGENT MEMORY ----------------
-_agent_memory = Memory(Path(__file__).parent / "memory.jsonl", max_retained=50)
-# ----------------------------------------------
-
 
 
 def _handle_root_error(e: Exception, project_root: Path) -> None:
@@ -114,11 +108,6 @@ def _call_llm(messages: list[dict[str, str]], model: str = "o3-ver1") -> str | N
 
 def agent_step(root: Path, model: str = "o3-ver1") -> None:
     snapshot = read_codebase(root)
-    # Include recent memory in prompt
-    mem_records = _agent_memory.load()
-    mem_snippet = "\n".join(json.dumps(r) for r in mem_records)
-    user_prompt += "\n\nPrevious memory (truncated):\n" + mem_snippet[-5000:]
-
     joined = "\n".join(f"## {p}\n{c}" for p, c in snapshot.items())[:100_000]
     user_prompt = (
         f"Today is {datetime.now(timezone.utc).date()}.\n"
