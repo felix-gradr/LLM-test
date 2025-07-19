@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+from test_runner import run_tests
 from dotenv import load_dotenv
 from datetime import datetime, timezone
 from pathlib import Path
@@ -117,6 +118,10 @@ def read_codebase(root: Path) -> dict[str, str]:
 
 def agent_step(root: Path, model: str = "o3") -> None:
     """Run one reasoning / coding cycle."""
+    # Run baseline tests before making any changes
+    if not run_tests(verbosity=1):
+        print("[TESTS] Baseline tests failing. Aborting agent step.")
+        return
     snapshot = read_codebase(root)
     # Truncate to avoid blowing past context limits
     joined = "\n".join(f"## {p}\n{c}" for p, c in snapshot.items())[:100000]
