@@ -5,6 +5,7 @@ from test_runner import run_tests
 from dotenv import load_dotenv
 from pathlib import Path
 from orchestrator import TaskRouter
+import file_editor
 
 
 # ---------------------------------------------------------------------- #
@@ -154,6 +155,7 @@ def agent_step(root: Path, model="o3-ver1") -> None:
             patch_code = patch_code.replace("```", "")
             exec(patch_code, globals())
         except Exception as exc:
+            print("PATC CODE", patch_code)
             print(f"[EXEC] Error while applying patch: {exc}")
             memory.log_error(exc, context="exec(patch_code)")
             _restore_snapshot(root, _pre_snapshot)
