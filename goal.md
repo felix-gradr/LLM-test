@@ -48,4 +48,4 @@ Available models are (ranked by power):
 - `o3-ver1`
 - `o4-mini`
 
-LLM calls are essentially free, so you are encouraged to leverage multiple LLM calls together and orchestrate a more sophisticated system of specialized LLM agents.
+LLM calls are free, so you are encouraged to leverage multiple LLM calls together and orchestrate a more sophisticated system of specialized LLM agents.
