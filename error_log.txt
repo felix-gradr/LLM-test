@@ -33,3 +33,21 @@ Traceback (most recent call last):
     from __future__ import annotations
 IndentationError: unexpected indent
 
+2025-07-19T03:16:51.390857 [INFO] [INFO] httpx - INFO - HTTP Request: POST https://sweden-central-1.openai.azure.com/openai/deployments/o4-mini/chat/completions?api-version=2025-03-01-preview "HTTP/1.1 200 OK"
+2025-07-19T03:17:04.839495 [INFO] [INFO] httpx - INFO - HTTP Request: POST https://sweden-central-1.openai.azure.com/openai/deployments/o4-mini/chat/completions?api-version=2025-03-01-preview "HTTP/1.1 200 OK"
+2025-07-19T03:17:31.462821 [INFO] [INFO] httpx - INFO - HTTP Request: POST https://sweden-central-1.openai.azure.com/openai/deployments/o3-ver1/chat/completions?api-version=2025-03-01-preview "HTTP/1.1 200 OK"
+--------------------------------------------------------------------------------
+2025-07-19T03:17:32Z
+Context: root.py top-level handler
+Traceback (most recent call last):
+  File "F:\repos\LLM-test\root.py", line 56, in _validate_codebase
+    source = p.read_text(encoding="utf-8", errors="replace")
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\repos\LLM-test\root.py", line 2
+    from __future__ import annotations
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+SyntaxError: from __future__ imports must occur at the beginning of the file
+
+2025-07-19T11:37:29.898394 [INFO] [INFO] httpx - INFO - HTTP Request: POST https://sweden-central-1.openai.azure.com/openai/deployments/o4-mini/chat/completions?api-version=2025-03-01-preview "HTTP/1.1 200 OK"
+2025-07-19T11:37:43.219419 [INFO] [INFO] httpx - INFO - HTTP Request: POST https://sweden-central-1.openai.azure.com/openai/deployments/o4-mini/chat/completions?api-version=2025-03-01-preview "HTTP/1.1 200 OK"
+2025-07-19T11:38:07.609055 [INFO] [INFO] httpx - INFO - HTTP Request: POST https://sweden-central-1.openai.azure.com/openai/deployments/o3-ver1/chat/completions?api-version=2025-03-01-preview "HTTP/1.1 200 OK"
