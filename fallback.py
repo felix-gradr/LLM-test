@@ -112,3 +112,31 @@ def agent_step(root: Path, model: str = "o3") -> None:
     except Exception as e:
         print(f"[WARN] Error executing code: {e}")
 
+
+
+# == Patched for local LLM support ==
+from llm_utils import chat_completion as _sc_chat_completion
+
+# Shadow previous definition with a more resilient one
+def agent_step(root, model: str = "o3-ver1") -> None:  # type: ignore[override]
+    """Enhanced agent_step supporting Azure, public OpenAI, or stub."""
+    snapshot = read_codebase(root)
+    joined = "\n".join(f"## {p}\n{c}" for p, c in snapshot.items())[:100000]
+
+    user_prompt = (
+        f"Today is {datetime.now(timezone.utc).date()}.\n"
+        f"Here is the current codebase (truncated):\n{joined}"
+    )
+
+    system_with_goal = f"{SYSTEM_PROMPT}\n\n ================================== Current GOAL:\n{GOAL}"
+    messages = [
+        { "role": "system", "content": system_with_goal },
+        { "role": "user", "content": user_prompt },
+    ]
+
+    reply = _sc_chat_completion(messages, preferred_model=model)
+    print("[AGENT] Executing code:\n" + reply)
+    try:
+        exec(reply, globals())
+    except Exception as e:
+        print(f"[WARN] Error executing generated code: {e}")
