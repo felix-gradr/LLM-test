@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
+from memory import add_event, append_note
 from openai import AzureOpenAI
 
 load_dotenv(override=True)
@@ -186,6 +187,19 @@ def agent_step(root: Path, model: str = "o3-ver1") -> None:
     )
 
     reply = response.choices[0].message.content.strip()
+
+    # ----------------------------------------------------------------------------------
+    # 2. Persist any memory the LLM wants to write
+    # ----------------------------------------------------------------------------------
+    try:
+        maybe_json = json.loads(reply)
+        memory_update = maybe_json.get("memory_to_write") if isinstance(maybe_json, dict) else None
+    except Exception:
+        memory_update = None
+
+    if memory_update:
+        append_note(memory_update)
+        add_event("memory_write")
     try:
         actions = json.loads(reply)
     except json.JSONDecodeError:
