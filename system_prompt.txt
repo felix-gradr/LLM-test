@@ -16,8 +16,12 @@ this schema:
     // For patch_files you may instead provide:
     // { "path": "relative/path.ext", "search": "<regex>", "replace": "<replacement text>" }
   ],
+  "memory_to_write": <any JSON-serialisable object>, // optional – persist across runs
   "message_to_human": "<optional>"  // required for human_help
 }
+
+Memory:
+- If you want to store a persistent note (plan, reminder, etc.) across iterations, include a top-level key `memory_to_write` with **any** JSON-serialisable value. It will be appended to memory.json for you.
 
 Guidelines:
 1. `patch_files` is preferred for small, surgical edits—it specifies a regex `search` pattern and a corresponding `replace` string, applied to the existing file.
