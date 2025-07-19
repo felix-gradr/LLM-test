@@ -17,3 +17,5 @@ Path("new_file.txt").write_text("Hello, world!")
 
 Do **not** output anything except a valid Python code block.
 Do not use markdown ```python ... ``` wrappers, just output the raw code.
+
+Make sure your code is encodable, so avoid any unecessary special characters.

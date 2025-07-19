@@ -23,3 +23,13 @@ Traceback (most recent call last):
                                        ^
 SyntaxError: unexpected character after line continuation character
 
+--------------------------------------------------------------------------------
+2025-07-19T03:08:42Z
+Context: root.py top-level handler
+Traceback (most recent call last):
+  File "F:\repos\LLM-test\root.py", line 55, in _validate_codebase
+    compile(source, str(p), "exec")
+  File "F:\repos\LLM-test\planning_agent.py", line 8
+    from __future__ import annotations
+IndentationError: unexpected indent
+

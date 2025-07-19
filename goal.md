@@ -11,13 +11,8 @@ There might also be a "current sub-goal", which is written by the human. It coul
 
 ### Current Sub-goal
 Empower yourself, set up things in the following order:
-- Set up a more sophisticated agent system, such that each iteration calls multiple agents with different purposes. Suggested v1:
- - Planning agent (o3) does no code, only longer-term planning work, looks at current status of project and curates the plan
- - Assignment agent (o3) assigns tasks to smaller agents
- - Workers (o4-mini)
- - More agents can be created in the future, but that should be figured out by the planning agent.
-You will have to write relatively extensive prompts for these (Perhaps a prompting agent would be useful down the line!)
-- 2. The project still needs more protection. The goal is, if more advanced modules fail, we should fall back to really simple methods such that the program never crashes entirely. That way, we can save the error logs of the more advanced failure, and the simpler tools can hopefully repair them without human intervention.
+- The system still needs better error logging and error detection, we got logs such as these:
+"[TaskRouter] Multi-agent pipeline failed with PlanningAgent missing. Reverting to single-agent mode.", but they are never saved, so the agents never get a chance to fix them.
 
 Future tasks: (Do not focus on yet)
 - 3. Clean up and refactor the repository. Reduce average file size for faster and easier writes.

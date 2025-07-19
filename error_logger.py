@@ -52,3 +52,41 @@ def log_error(exc: BaseException, context: Optional[str] = None, **extras: Any) 
 
     # 2. Store in memory for future agent reasoning
     add_memory(record)
+
+
+# -----------------------------------------------------------------
+# Generic text logger (added by SelfCoder)
+# -----------------------------------------------------------------
+import datetime as _dt
+from pathlib import Path as _Path
+
+try:
+    from memory import add_memory as _add_memory
+except Exception:  # pragma: no cover
+    def _add_memory(*_a, **_kw):  # type: ignore
+        """Fallback when memory store is unavailable."""
+        pass
+
+def log_message(message: str, level: str = "INFO") -> None:
+    """Persist an arbitrary runtime message to error_log.txt
+    and long-term memory so that future agents can analyse it."""
+    timestamp = _dt.datetime.utcnow().isoformat()
+    record = f"{timestamp} [{level.upper()}] {message}"
+
+    log_file = _Path("error_log.txt")
+    log_file.parent.mkdir(parents=True, exist_ok=True)
+    with log_file.open("a", encoding="utf-8") as fh:
+        fh.write(record + "\n")
+
+    try:
+        _add_memory(
+            {
+                "type": "log",
+                "level": level.upper(),
+                "message": message,
+                "timestamp": timestamp,
+            }
+        )
+    except Exception:
+        # Logging must never crash the main process
+        pass

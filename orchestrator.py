@@ -9,6 +9,7 @@ HeavyAgent to obtain a Python code-patch (to be executed by root.py).
 """
 
 from __future__ import annotations
+from error_logger import log_message
 from typing import Dict
 
 from llm_helper import ask_o4, ask_o3
