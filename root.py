@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import os
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -132,7 +132,7 @@ def _apply_full_writes(root: Path, changes: list[dict]):
         target.write_text(change["content"], encoding="utf-8")
         # Record in-memory event
         add_event(f"wrote {rel_path}")
-        print(f"[{datetime.utcnow().isoformat(timespec='seconds')}] Wrote {rel_path}")
+        print(f"[{datetime.now(timezone.utc).isoformat(timespec='seconds')}] Wrote {rel_path}")
 
 
 def _apply_patches(root: Path, patches: list[dict]):
@@ -157,7 +157,7 @@ def _apply_patches(root: Path, patches: list[dict]):
             target.write_text(new_content, encoding="utf-8")
             add_event(f"patched {rel_path}")
             print(
-                f"[{datetime.utcnow().isoformat(timespec='seconds')}] Patched {rel_path} ({n} replacement{'s' if n!=1 else ''})"
+                f"[{datetime.now(timezone.utc).isoformat(timespec='seconds')}] Patched {rel_path} ({n} replacement{'s' if n!=1 else ''})"
             )
 
 # --------------------------------------------------------------------------------------
@@ -174,7 +174,7 @@ def agent_step(root: Path, model: str = "o3-ver1") -> None:
     # Add timestamp, memory & codebase to user prompt
     memory_summary = summarise_memory()
     user_prompt = (
-        f"Today is {datetime.utcnow().date()}.\n"
+        f"Today is {datetime.now(timezone.utc).date()}.\n"
         f"Persistent memory (truncated):\n{memory_summary}\n\n"
         f"Here is the current codebase (truncated):\n{joined}"
     )
@@ -234,7 +234,7 @@ def agent_step(root: Path, model: str = "o3-ver1") -> None:
             target.parent.mkdir(parents=True, exist_ok=True)
             with target.open("a", encoding="utf-8") as fp:
                 fp.write(change["content"])
-            print(f"[{datetime.utcnow().isoformat(timespec='seconds')}] Appended to {rel_path}")
+            print(f"[{datetime.now(timezone.utc).isoformat(timespec='seconds')}] Appended to {rel_path}")
     elif action == "patch_files":
         _apply_patches(root, actions.get("changes", []))
     elif action == "human_help":
@@ -248,7 +248,7 @@ def agent_step(root: Path, model: str = "o3-ver1") -> None:
     seed_file = root / "seed.txt"
     if seed_file.exists():
         seed_file.unlink()
-        print(f"[{datetime.utcnow().isoformat(timespec='seconds')}] Deleted {seed_file}")
+        print(f"[{datetime.now(timezone.utc).isoformat(timespec='seconds')}] Deleted {seed_file}")
 
 # --------------------------------------------------------------------------------------
 # CLI
