@@ -50,7 +50,7 @@ def _validate_codebase(root: Path) -> bool:
     import builtins
     for p in root.rglob("*.py"):
         try:
-            source = p.read_text(encoding="utf-8")
+            source = p.read_text(encoding="utf-8", errors="replace")
             compile(source, str(p), "exec")
         except Exception as e:
             error_logger.log_error(e, context="root.py top-level handler")
