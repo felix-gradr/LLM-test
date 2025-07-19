@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import memory
+from orchestrator import TaskRouter
 import traceback
 from test_runner import run_tests
 from dotenv import load_dotenv
@@ -133,24 +134,12 @@ def agent_step(root: Path, model: str = "o3") -> None:
         f"Here is the current codebase (truncated):\n{joined}"
     )
 
-    # Add GOAL to the system prompt
-    SYSTEM_PROMPT_WITH_GOAL = f"{SYSTEM_PROMPT}\n\n ================================== Current GOAL:\n{GOAL}"
 
-    client = AzureOpenAI(
-            api_key=os.getenv("AZURE_KEY"),
-            azure_endpoint=os.getenv("AZURE_ENDPOINT"),
-            api_version="2025-03-01-preview",
-        )
-
-    response = client.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT_WITH_GOAL},
-            {"role": "user", "content": user_prompt},
-        ],
-    )
-
-    reply = response.choices[0].message.content.strip()
+    # ------------------------------------------------------------------ #
+    #  Delegate code generation to the orchestrator (LightAgent ➜ HeavyAgent)
+    # ------------------------------------------------------------------ #
+    router = TaskRouter(snapshot, GOAL, SYSTEM_PROMPT)
+    reply = router.generate()
     
     try:
 
