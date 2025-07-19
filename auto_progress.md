@@ -1,1 +1,1 @@
-UTC 2025-07-19T14:31:37.736625 | task: Here are three small, high-impact tasks that will get us basic error logging in place without touching `goal.md` or `.env`.  Once these land, any downstream error (in your main loop, in `coder`, or in `fallback`) will at least be captured in a log file so we can iterate on a “current issues” dashboard later | status: error: name '__file__' is not defined
+UTC 2025-07-19T14:38:35.521744 | task: Here are three small, high‐impact tasks to steadily harden the startup path and guarantee that “python -m root” never silently dies: | status: ok

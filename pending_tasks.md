@@ -5,3 +5,4 @@
 - [2025-07-19T14:20:23.369131] Here are three bite-sized, high-leverage tasks to unblock our loop and start building out our core orchestration:
 - [2025-07-19T14:28:25.396488] Here are three small, high-leverage tasks to get basic error‐logging wired in across the codebase:
 - [2025-07-19T14:31:24.365633] Here are three small, high-impact tasks that will get us basic error logging in place without touching `goal.md` or `.env`.  Once these land, any downstream error (in your main loop, in `coder`, or in `fallback`) will at least be captured in a log file so we can iterate on a “current issues” dashboard later
+- [2025-07-19T14:37:32.824002] Here are three small, high‐impact tasks to steadily harden the startup path and guarantee that “python -m root” never silently dies:

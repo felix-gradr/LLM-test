@@ -83,3 +83,25 @@
 - ```
 - That replaces the console‐only traceback with a persistent log entry
 - Once these three bite‐sized changes are in place, rerunning `python -m root` will always drop any failures into `logs/error.log`, giving us a foothold to build out the “current issues” system next
+
+### 2025-07-19T14:39:03.639998+00:00
+- Here are three small, high‐impact tasks to steadily harden the startup path and guarantee that “python -m root” never silently dies:
+- Create an `error_logger.py` helper
+- – File: `error_logger.py` at repo root
+- – Contents:
+- • A `log_exception(exc: Exception)` function that writes a timestamped traceback to `errors.log`
+- • Use standard library only (`traceback`, `datetime`)
+- – Impact: central place to dump any uncaught exception for later triage
+- Wrap and repair `root.py`’s startup
+- – Move any `from __future__` lines to the very top of `root.py`
+- – Surround the import of `error_logger` in a `try/except ImportError` so missing file doesn’t blow up
+- – In the `if __name__=="__main__":` block, wrap the main run in `try/except Exception as e`, call `error_logger.log_exception(e)`, then always exit gracefully (e.g. print a one‐line status)
+- – Impact: even if something else is broken, root.py will never explode unhandled
+- Enhance `fallback.py` to auto‐capture and bootstrap fixes on startup errors
+- – Import the `coder` module inside `fallback.py`
+- – Instead of a straight `import root`, use `importlib` or a subprocess to catch `SyntaxError`, `ModuleNotFoundError`, etc
+- – On any such failure:
+- • Call `error_logger.log_exception(...)` to record it
+- • Use `coder.record_task(...)` to append a “fix this startup exception” task to `pending_tasks.md`
+- • Invoke `coder.apply_task(...)` so the agent immediately attempts an automated repair
+- – Impact: fallback now not only logs, but proactively spins up an LLM‐driven fix and ensures we never get permanently stuck
