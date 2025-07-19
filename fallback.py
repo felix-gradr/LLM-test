@@ -1,69 +1,58 @@
-##FALL BACK AGENT; EDIT WITH EXTREME CAUTION
 
+##FALL BACK AGENT; EDIT WITH EXTREME CAUTION
 from __future__ import annotations
 
 import os
-from dotenv import load_dotenv
+import traceback
 from datetime import datetime, timezone
 from pathlib import Path
-from error_logger import log_error
 
+from dotenv import load_dotenv
 from openai import AzureOpenAI
+
+from error_logger import log_error
 
 load_dotenv(override=True)
 
-# File types that the agent is allowed to read/write.  Adjust as needed.
+# File types that the agent is allowed to read/write. Adjust as needed.
 CODE_EXTENSIONS = {".py", ".txt", ".md"}
 
-# Load SYSTEM_PROMPT from prompt.txt
-SYSTEM_PROMPT = (Path(__file__).parent / "system_prompt.txt").read_text(encoding="utf-8").strip()
+# Load prompts & goal
+ROOT = Path(__file__).parent
+SYSTEM_PROMPT = (ROOT / "system_prompt.txt").read_text(encoding="utf-8").strip()
+GOAL = (ROOT / "goal.md").read_text(encoding="utf-8").strip()
 
-
-# Load goal from goal.md
-GOAL = (Path(__file__).parent / "goal.md").read_text(encoding="utf-8").strip()
-
-
+# --------------- Helper functions --------------- #
 def _read_gitignore(root: Path) -> list[str]:
-    """Read and parse .gitignore rules from the root directory."""
     gitignore = root / ".gitignore"
     if not gitignore.is_file():
         return []
-    
-    patterns = []
-    with gitignore.open("r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if line and not line.startswith("#"):
-                patterns.append(line)
+    patterns: list[str] = []
+    for line in gitignore.read_text().splitlines():
+        line = line.strip()
+        if line and not line.startswith("#"):
+            patterns.append(line)
     return patterns
 
 
 def _is_ignored(path: Path, root: Path, ignore_patterns: list[str]) -> bool:
-    """Check if a path is ignored by .gitignore rules."""
     import fnmatch
-    rel_path = str(path.relative_to(root).as_posix())
+
+    rel_path = path.relative_to(root).as_posix()
     for pattern in ignore_patterns:
-        # Handle directory-only patterns (e.g., "node_modules/")
-        if pattern.endswith('/'):
-            # Match if the path starts with the directory pattern
-            if rel_path.startswith(pattern):
+        if pattern.endswith("/"):  # dir pattern
+            if rel_path.startswith(pattern) or fnmatch.fnmatch(rel_path, pattern + "*"):
                 return True
-            # Also match against the pattern with a wildcard for files inside
-            if fnmatch.fnmatch(rel_path, pattern + '*'):
-                return True
-        # Handle patterns without slashes (e.g., "*.log")
-        elif '/' not in pattern:
+        elif "/" not in pattern:  # filename pattern, e.g. *.log
             if fnmatch.fnmatch(path.name, pattern):
                 return True
-        # Handle patterns with slashes (e.g., "config/*.ini")
-        else:
+        else:  # glob with slash
             if fnmatch.fnmatch(rel_path, pattern):
                 return True
     return False
 
 
 def read_codebase(root: Path) -> dict[str, str]:
-    """Return a dict mapping relative paths to file contents, respecting .gitignore."""
     files: dict[str, str] = {}
     ignore_patterns = _read_gitignore(root)
     for path in root.rglob("*"):
@@ -71,46 +60,67 @@ def read_codebase(root: Path) -> dict[str, str]:
             continue
         if path.suffix in CODE_EXTENSIONS and path.is_file():
             try:
-                files[str(path.relative_to(root))] = path.read_text()
-            except UnicodeDecodeError:
-                # Skip binary or non‑UTF8 files
-                continue
+                files[str(path.relative_to(root))] = path.read_text(encoding="utf-8")
+            except Exception as e:  # pragma: no cover
+                # Could be binary or bad encoding – skip but log for visibility
+                log_error(f"read_codebase: unable to read {path}", e)
     return files
 
 
-def agent_step(root: Path, model: str = "o3") -> None:
-    """Run one reasoning / coding cycle."""
-    snapshot = read_codebase(root)
-    # Truncate to avoid blowing past context limits
-    joined = "\n".join(f"## {p}\n{c}" for p, c in snapshot.items())[:100000]
+# --------------- Core fallback agent --------------- #
+def agent_step(root: Path, model: str = "o3-ver1") -> None:
+    """Perform a single fallback reasoning / coding cycle.
+
+    All errors are logged using error_logger.log_error so that the main
+    iteration never silently fails.
+    """
+    # Snapshot current codebase
+    snapshot: dict[str, str] = read_codebase(root)
+
+    # Truncate snapshot to reasonable length (100k chars)
+    joined_snapshot = "\n".join(f"## {p}\n{c}" for p, c in snapshot.items())[:100_000]
 
     user_prompt = (
         f"Today is {datetime.now(timezone.utc).date()}.\n"
-        f"Here is the current codebase (truncated):\n{joined}"
+        f"Here is the current codebase (truncated):\n{joined_snapshot}"
     )
 
-    # Add GOAL to the system prompt
-    SYSTEM_PROMPT_WITH_GOAL = f"{SYSTEM_PROMPT}\n\n ================================== Current GOAL:\n{GOAL}"
+    system_prompt = (
+        f"{SYSTEM_PROMPT}\n\n"
+        f" ================================== Current GOAL:\n{GOAL}"
+    )
 
-    client = AzureOpenAI(
+    # Prepare OpenAI client
+    try:
+        client = AzureOpenAI(
             api_key=os.getenv("AZURE_KEY"),
             azure_endpoint=os.getenv("AZURE_ENDPOINT"),
             api_version="2025-03-01-preview",
         )
-
-    response = client.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT_WITH_GOAL},
-            {"role": "user", "content": user_prompt},
-        ],
-    )
-
-    reply = response.choices[0].message.content.strip()
-    
-    print("[AGENT] Executing code:\n" + reply)
-    try:
-        exec(reply, globals())
     except Exception as e:
-        print(f"[WARN] Error executing code: {e}")
+        # Critical – we cannot even build the client
+        log_error("fallback.agent_step: failed to initialise AzureOpenAI", e)
+        return  # Early exit – nothing we can do now
 
+    # Query the model
+    try:
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+        )
+        reply = response.choices[0].message.content.strip()
+    except Exception as e:
+        log_error("fallback.agent_step: OpenAI completion error", e)
+        return
+
+    # Execute the returned code
+    print("[FALLBACK] Executing model-generated code:")
+    print(reply)
+    try:
+        exec(reply, globals(), locals())
+    except Exception as e:
+        log_error("fallback.agent_step: error executing LLM code", e)
+        print(f"[FALLBACK WARN] Execution error: {e}")

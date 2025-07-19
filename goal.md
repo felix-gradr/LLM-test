@@ -10,7 +10,9 @@ Create a SAAS business that generates $1k MRR
 There might also be a "current sub-goal", which is written by the human. It could be guidance or specific tasks the humans would like. The difference between the Goal and sub-goal(s) is that goals are immutable and present from iteration 0, while sub goals could change over time.
 
 ### Current Sub-goal
-- Create more safety, such that the iterations never get completely stuck. Log any errors, such that future iterations can fix them.
+- Implement model orchestration. Work is not supposed to be done by the fallback model (only in emergency cases). I suggest creating 2 initial agents (that are both run on each iteration):
+ - 1. Planning agent, looks at the current states and edits a "current_plan.md"
+ - 2. Execution agent, that looks at the plan and implements.
 
 ### What Can you change
 This repository is you, see it as your brain.

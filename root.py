@@ -27,5 +27,13 @@ def main() -> None:
             # Re-raise so that external runners notice hard failure
             raise
 
+
+# Ensure the 'seed.txt' marker is removed after first run for clarity
+seed_marker = Path(__file__).parent / "seed.txt"
+if seed_marker.exists():
+    try:
+        seed_marker.unlink()
+    except Exception as e:
+        log_error("root.py: failed to remove seed.txt", e)
 if __name__ == "__main__":
     main()
