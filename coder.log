@@ -1,2 +1,3 @@
 2025-07-19T14:29:15.279151 | Here are three small, high-leverage tasks to get basic error‐logging wired in across the codebase: -> error: name '__file__' is not defined
 2025-07-19T14:31:37.736625 | Here are three small, high-impact tasks that will get us basic error logging in place without touching `goal.md` or `.env`.  Once these land, any downstream error (in your main loop, in `coder`, or in `fallback`) will at least be captured in a log file so we can iterate on a “current issues” dashboard later -> error: name '__file__' is not defined
+2025-07-19T14:33:12.382148 | Here are three high-impact, bite-sized tasks to rapidly bootstrap a primitive error-logging system across the repo: -> error: name '__file__' is not defined

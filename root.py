@@ -1,3 +1,4 @@
+import error_logger  # Auto-added to capture uncaught exceptions
 """Entry point for SelfCoder.
 
 Workflow:

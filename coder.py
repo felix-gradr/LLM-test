@@ -55,8 +55,10 @@ def apply_task(task: str, model: str = "o3-ver1") -> str:
 
     status = "ok"
     try:
-        exec(reply, {"__name__": "__coder_exec__"})
+        exec_globals = {"__name__": "__coder_exec__", "__file__": str(gen_file)}
+        exec(reply, exec_globals)
     except Exception as e:
+        error_logger.log_exception(e)
         status = f"error: {e}"
         traceback.print_exc()
 

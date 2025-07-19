@@ -83,3 +83,18 @@
 - ```
 - That replaces the console‐only traceback with a persistent log entry
 - Once these three bite‐sized changes are in place, rerunning `python -m root` will always drop any failures into `logs/error.log`, giving us a foothold to build out the “current issues” system next
+
+### 2025-07-19T14:33:33.955483+00:00
+- Here are three high-impact, bite-sized tasks to rapidly bootstrap a primitive error-logging system across the repo:
+- Create a centralized error-logging module
+- Add a new file `error_logger.py` at the repo root
+- In it, configure Python’s `logging` to write ERROR-level (and above) messages with timestamps and stack traces into a file like `error.log`
+- Provide an `init_logging()` function that sets up both a file handler and a console handler
+- Wire up logging in your main agent (`root.py`)
+- At the very top of `root.py`, import and call `error_logger.init_logging()`
+- Wrap the main execution entrypoint (whatever drives coder.apply_task or similar) in a try/except that catches any Exception and does `logger.exception(...)` before continuing or exiting gracefully
+- Ensure that even if something else blows up, you’ll get a stack trace in `error.log`
+- Add fallback-agent error trapping
+- In `fallback.py`, import the same `error_logger` and call `init_logging()` early
+- Encase the fallback agent’s core logic in try/except, logging any unexpected exception via `logger.exception()`
+- This ensures that even your safety net logs its own failures, so nothing ever fails silently
