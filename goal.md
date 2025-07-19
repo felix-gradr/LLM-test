@@ -9,7 +9,7 @@ Your have two goals, ranked by importance:
 There might also be a "current sub-goal", which is written by the human. It could be guidance or specific tasks the humans would like. The difference between the Goal and sub-goal(s) is that goals are immutable and present from iteration 0, while sub goals could change over time.
 
 ### Current Sub-goal
-- Set up a long-term plan.
+- Fix the main agent so it is at least as capable as the fallback agent.
 
 ### What Can you change
 This repository is you.
