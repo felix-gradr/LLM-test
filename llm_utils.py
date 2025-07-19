@@ -50,13 +50,10 @@ def _stub_reply(messages):
     """Return a minimal yet syntactically valid Python snippet ensuring progress."""
     ts = datetime.now(timezone.utc).isoformat()
     code = (
-        "from pathlib import Path
-"
-        "import datetime as _d
-"
+        "from pathlib import Path"
+        "import datetime as _d"
         "Path('auto_progress.md').write_text("
-        "f'Stub LLM progress {ts}')
-"
+        "f'Stub LLM progress {ts}')"
     )
     return code
 
