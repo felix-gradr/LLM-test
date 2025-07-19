@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
-from memory import add_event, append_note, load_memory
+from memory import add_event, append_note, load_memory, summarise_memory
 from openai import AzureOpenAI
 
 load_dotenv(override=True)
@@ -172,7 +172,7 @@ def agent_step(root: Path, model: str = "o3-ver1") -> None:
     joined = "\n".join(f"## {p}\n{c}" for p, c in snapshot.items())[:100000]
 
     # Add timestamp, memory & codebase to user prompt
-    memory_summary = _summarise_memory()
+    memory_summary = summarise_memory()
     user_prompt = (
         f"Today is {datetime.utcnow().date()}.\n"
         f"Persistent memory (truncated):\n{memory_summary}\n\n"

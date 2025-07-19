@@ -27,6 +27,29 @@ def add_event(event: str):
     save_memory(mem)
 
 
+# --------------------------------------------------------------------------------------
+# HIGH-LEVEL MEMORY SUMMARY (moved from root.py)
+# --------------------------------------------------------------------------------------
+
+def summarise_memory(max_events: int = 20, max_notes: int = 10) -> str:
+    """Return a concise JSON snippet with the most recent events & notes.
+
+    Instead of dumping the entire memory file (which can grow unbounded), we
+    surface only the last *max_events* and *max_notes* entries.  This keeps
+    prompts small and focuses the LLM on the most relevant, recent context.
+    """
+    mem = load_memory()
+    events = mem.get("events", [])[-max_events:]
+    notes = mem.get("notes", [])[-max_notes:]
+    subset = {"events": events, "notes": notes}
+    try:
+        return json.dumps(subset, indent=2)
+    except Exception:
+        # Fallback to a simple string representation if serialization fails
+        return str(subset)
+
+
+
 def append_note(note: Any):
     """Append free-form, timestamped notes created by the agent.
 
@@ -41,3 +64,26 @@ def append_note(note: Any):
         "content": note,
     })
     save_memory(mem)
+
+
+# --------------------------------------------------------------------------------------
+# HIGH-LEVEL MEMORY SUMMARY (moved from root.py)
+# --------------------------------------------------------------------------------------
+
+def summarise_memory(max_events: int = 20, max_notes: int = 10) -> str:
+    """Return a concise JSON snippet with the most recent events & notes.
+
+    Instead of dumping the entire memory file (which can grow unbounded), we
+    surface only the last *max_events* and *max_notes* entries.  This keeps
+    prompts small and focuses the LLM on the most relevant, recent context.
+    """
+    mem = load_memory()
+    events = mem.get("events", [])[-max_events:]
+    notes = mem.get("notes", [])[-max_notes:]
+    subset = {"events": events, "notes": notes}
+    try:
+        return json.dumps(subset, indent=2)
+    except Exception:
+        # Fallback to a simple string representation if serialization fails
+        return str(subset)
+

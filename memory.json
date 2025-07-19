@@ -19,6 +19,22 @@
     {
       "timestamp": "2025-07-19T00:17:45",
       "event": "wrote system_prompt.txt"
+    },
+    {
+      "timestamp": "2025-07-19T00:19:52",
+      "event": "memory_write"
+    },
+    {
+      "timestamp": "2025-07-19T00:19:52",
+      "event": "patched memory.py"
+    },
+    {
+      "timestamp": "2025-07-19T00:19:52",
+      "event": "patched root.py"
+    },
+    {
+      "timestamp": "2025-07-19T00:19:52",
+      "event": "patched root.py"
     }
   ],
   "notes": [
@@ -26,6 +42,12 @@
       "timestamp": "2025-07-19T00:17:45",
       "content": {
         "note": "Created initial plan.md and upgraded system prompt to reference the plan and multi-LLM strategy."
+      }
+    },
+    {
+      "timestamp": "2025-07-19T00:19:52",
+      "content": {
+        "note": "Extracted summarise_memory to memory.py and updated root.py to use it, starting refactor to break root.py into smaller modules."
       }
     }
   ]
