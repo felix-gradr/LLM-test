@@ -144,3 +144,28 @@
 - In `fallback.py` (or wherever you dispatch to fallback), before attempting any LLM work, run `compileall.compile_dir(...)`
 - If there are syntax errors, immediately restore from the most recent backup and log the incident, then proceed
 - This closes the loop: any broken commit triggers a rollback and still makes “intelligent progress.”
+
+### 2025-07-19T14:57:02.675736+00:00
+- Here are three small, high-impact tasks to get us unstuck and driving continuous progress:
+- Build a minimal orchestrator (`root.py`)
+- Create `root.py` at the project root with a `main()` that:
+- • Reads the GOAL from `goal.md`
+- • Loads any outstanding `pending_tasks.md` entries
+- • If there are no pending tasks, calls a planning routine (see Task 2)
+- • Otherwise picks the oldest task, calls `coder.apply_task(...)`, and on success removes it from `pending_tasks.md`
+- • Logs each iteration to a simple `iteration_log.md`
+- Wire up `if __name__ == "__main__": main()` so that `python -m root` runs it
+- Add a lightweight LLM-backed planner in `root.py`
+- Inside `root.py`, implement `plan_new_tasks()` that:
+- • Invokes `llm_utils.chat_completion` with a system message embedding the GOAL, a short codebase snapshot, and “You’re an agent planning the next 3 tiny tasks toward this goal.”
+- • Parses the reply into a bullet-list of 3 one-sentence tasks
+- • Calls `coder.record_task(task)` for each bullet
+- Ensure that `main()` calls `plan_new_tasks()` when there are no pending tasks
+- Hook in a bare-bones fallback recovery
+- In `root.py` wrap your `main()` logic in a try/except. On any exception:
+- • `import fallback` and call a newly defined `fallback.main(error_traceback)`
+- In `fallback.py` add:
+- • A `def main(error: str):` entrypoint
+- • That writes the traceback to `fallback.log` with a timestamp
+- • And appends a generic “Recover from error” task to `pending_tasks.md` so the next run still has something to do
+- These three tasks will give us a loop that (a) never crashes without registering recovery work, (b) actually plans and executes something each iteration, and (c) ensures intelligent LLM-based forward motion. Once this is in place, we can iterate on making the planner smarter and the fallback more self-healing

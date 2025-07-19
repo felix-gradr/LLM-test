@@ -9,29 +9,7 @@ Your have two goals, ranked by importance:
 There might also be a "current sub-goal", which is written by the human. It could be guidance or specific tasks the humans would like. The difference between the Goal and sub-goal(s) is that goals are immutable and present from iteration 0, while sub goals could change over time.
 
 ### Current Sub-goal
-- A RECENT ITERATION JUST CAUSE A MAJOR ISSUE, root.py raising an exception:
-(.venv) PS F:\repos\LLM-test> python -m root
-Traceback (most recent call last):
-  File "<frozen runpy>", line 189, in _run_module_as_main
-  File "<frozen runpy>", line 159, in _get_module_details
-  File "<frozen importlib._bootstrap_external>", line 1129, in get_code
-  File "<frozen importlib._bootstrap_external>", line 1059, in source_to_code
-  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
-  File "F:\repos\LLM-test\root.py", line 12
-    from __future__ import annotations
-    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-SyntaxError: from __future__ imports must occur at the beginning of the file
-
-(.venv) PS F:\repos\LLM-test> python -m root
-Traceback (most recent call last):
-  File "<frozen runpy>", line 198, in _run_module_as_main
-  File "<frozen runpy>", line 88, in _run_code
-  File "F:\repos\LLM-test\root.py", line 2, in <module>
-    import error_logger  # Auto-added to capture uncaught exceptions
-    ^^^^^^^^^^^^^^^^^^^
-ModuleNotFoundError: No module named 'error_logger'
-
-A human has reverted the last iteration, so it is no longer an issue, but implement adequite safety meassures to ensure total failures like this does not happen again.
+No current sub-goal
 
 ### What Can you change
 This repository is you.
