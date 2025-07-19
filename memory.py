@@ -1,97 +1,56 @@
-"""Thread-safe JSONL memory store.
-
-Fixes:
-    1. Ensures the file is always created before use.
-    2. Guarantees writes are flushed & fsynced (prevents data-loss on crash).
-    3. Adds a mutex to prevent race-conditions in concurrent writes.
-    4. Safely trims the file when it exceeds MAX_FILE_SIZE.
-"""
 
 from __future__ import annotations
-
 import json
-import os
-import threading
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import List, Dict, Any
+def log_error(exc: Exception, context: str | None = None) -> None:
+    """Persist *exc* details to memory for future debugging.
+    
+    Args:
+        exc: The caught exception instance.
+        context: Optional high-level description of where/why the error occurred.
+    """
+    import traceback
+    tb_str = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+    payload = f"{context or 'Error'}:\n{tb_str}"
+    add_memory(payload, meta={"kind": "error"})
 
-# Constants
-_ROOT = Path(__file__).resolve().parent
-MEMORY_FILE = _ROOT / "memory.jsonl"
-MAX_FILE_SIZE = 2 * 1024 * 1024  # 2 MB
-_LOCK = threading.Lock()
+MEMORY_FILE = Path(__file__).parent / "memory.jsonl"
+MAX_SIZE_BYTES = 2 * 1024 * 1024  # 2 MB cap to avoid uncontrolled growth
 
 
-# --------------------------------------------------------------------------- #
-# Internal helpers
-# --------------------------------------------------------------------------- #
 def _ensure_file() -> None:
-    """Make sure memory.jsonl exists."""
     if not MEMORY_FILE.exists():
         MEMORY_FILE.touch()
 
 
-def _trim_if_oversize() -> None:
-    """Trim the oldest half of the file if it grows beyond MAX_FILE_SIZE."""
-    if MEMORY_FILE.stat().st_size <= MAX_FILE_SIZE:
-        return
-
-    with MEMORY_FILE.open("r", encoding="utf-8") as f:
-        lines = f.readlines()
-
-    # Keep only the newest half
-    keep_from = len(lines) // 2
-    with MEMORY_FILE.open("w", encoding="utf-8") as f:
-        f.writelines(lines[keep_from:])
-
-
-# --------------------------------------------------------------------------- #
-# Public API
-# --------------------------------------------------------------------------- #
-def add_memory(data: Dict[str, Any]) -> None:
-    """Append a single JSON entry to the memory file in a thread-safe way."""
-    record = {
-        "timestamp": datetime.utcnow().isoformat(),
-        **data,
+def add_memory(content: str, meta: Dict[str, Any] | None = None) -> None:
+    """
+    Append a memory entry to disk. Keeps file size under the cap by trimming
+    oldest entries if needed.
+    """
+    _ensure_file()
+    entry = {
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "content": content,
+        "meta": meta or {},
     }
+    with MEMORY_FILE.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
+    # Trim if necessary
+    if MEMORY_FILE.stat().st_size > MAX_SIZE_BYTES:
+        lines = MEMORY_FILE.read_text(encoding="utf-8").splitlines()
+        # keep last 70%
+        keep_from = int(len(lines) * 0.3)
+        MEMORY_FILE.write_text("\n".join(lines[keep_from:]), encoding="utf-8")
+
+
+def load_memories(limit: int | None = 50) -> List[Dict[str, Any]]:
     _ensure_file()
-    serialised = json.dumps(record, ensure_ascii=False)
-
-    with _LOCK:
-        with MEMORY_FILE.open("a", encoding="utf-8") as f:
-            f.write(serialised + "\n")
-            f.flush()
-            os.fsync(f.fileno())
-        _trim_if_oversize()
-
-
-def log_error(error: str, meta: Optional[Dict[str, Any]] = None) -> None:
-    """Shortcut to log an error event to the memory."""
-    add_memory(
-        {
-            "type": "error",
-            "error": error,
-            "meta": meta or {},
-        }
-    )
-
-
-def load_memories() -> List[Dict[str, Any]]:
-    """Load all memory entries, skipping corrupted lines."""
-    _ensure_file()
-    memories: List[Dict[str, Any]] = []
-
-    with _LOCK:
-        with MEMORY_FILE.open("r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    memories.append(json.loads(line))
-                except json.JSONDecodeError:
-                    # Skip malformed lines to avoid crashing the whole loader
-                    continue
-    return memories
+    lines = MEMORY_FILE.read_text(encoding="utf-8").splitlines()
+    items = [json.loads(l) for l in lines if l.strip()]
+    if limit is not None:
+        items = items[-limit:]
+    return items
